@@ -1208,7 +1208,7 @@ checksum = "df94ce210e5bc13cb6651479fa48d14f601d9858cfe0467f43ae157023b938d3"
 
 [[package]]
 name = "pawscope"
-version = "1.9.1"
+version = "1.10.0"
 dependencies = [
  "anyhow",
  "axum",
@@ -1233,7 +1233,7 @@ dependencies = [
 
 [[package]]
 name = "pawscope-aider"
-version = "1.9.1"
+version = "1.10.0"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -1249,7 +1249,7 @@ dependencies = [
 
 [[package]]
 name = "pawscope-claude"
-version = "1.9.1"
+version = "1.10.0"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -1266,7 +1266,7 @@ dependencies = [
 
 [[package]]
 name = "pawscope-codex"
-version = "1.9.1"
+version = "1.10.0"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -1283,7 +1283,7 @@ dependencies = [
 
 [[package]]
 name = "pawscope-copilot"
-version = "1.9.1"
+version = "1.10.0"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -1303,7 +1303,7 @@ dependencies = [
 
 [[package]]
 name = "pawscope-core"
-version = "1.9.1"
+version = "1.10.0"
 dependencies = [
  "async-trait",
  "chrono",
@@ -1315,7 +1315,7 @@ dependencies = [
 
 [[package]]
 name = "pawscope-gemini"
-version = "1.9.1"
+version = "1.10.0"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -1331,7 +1331,7 @@ dependencies = [
 
 [[package]]
 name = "pawscope-opencode"
-version = "1.9.1"
+version = "1.10.0"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -1348,7 +1348,7 @@ dependencies = [
 
 [[package]]
 name = "pawscope-server"
-version = "1.9.1"
+version = "1.10.0"
 dependencies = [
  "anyhow",
  "async-trait",
