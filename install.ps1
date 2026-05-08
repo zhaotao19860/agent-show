@@ -9,6 +9,7 @@
 #
 # Requires: PowerShell 5+ (built-in on Windows 10/11).
 
+& {
 $ErrorActionPreference = 'Stop'
 
 $Repo = "benjamin7007/Pawscope"
@@ -84,7 +85,8 @@ if ($UserPath -notlike "*$Prefix*") {
 }
 
 # Show version
-& $BinDest --version
+$ver = (& $BinDest --version 2>&1) | Out-String
+Write-Host "==> $($ver.Trim())" -ForegroundColor Cyan
 
 # Auto-start
 $ServerUrl = "http://127.0.0.1:7777"
@@ -96,18 +98,19 @@ try {
 
 if ($AlreadyUp) {
     Write-Host "==> Server already running at $ServerUrl — opening browser." -ForegroundColor Cyan
-    Start-Process $ServerUrl
+    Start-Process -FilePath $ServerUrl
 } else {
     Write-Host "==> Starting pawscope server..." -ForegroundColor Cyan
-    Start-Process -FilePath $BinDest -ArgumentList "serve", "--no-open" -WindowStyle Hidden
+    Start-Process -FilePath $BinDest -ArgumentList @("serve", "--no-open") -WindowStyle Hidden
     Start-Sleep -Seconds 3
     try {
         $null = Invoke-WebRequest -Uri $ServerUrl -UseBasicParsing -TimeoutSec 2 -ErrorAction Stop
         Write-Host "==> Server is up: $ServerUrl" -ForegroundColor Cyan
-        Start-Process $ServerUrl
+        Start-Process -FilePath $ServerUrl
     } catch {
         Write-Host "==> Could not auto-start. Run manually: pawscope serve" -ForegroundColor Yellow
     }
 }
 
 Write-Host "==> Done!" -ForegroundColor Green
+}
