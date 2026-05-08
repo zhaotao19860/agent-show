@@ -597,3 +597,37 @@ export async function installSkill(
   }
   return r.json();
 }
+
+// ---------------------------------------------------------------------------
+// Environment & Copilot Quota
+// ---------------------------------------------------------------------------
+
+export interface EnvInfo {
+  ip: string;
+  country: string;
+  city: string;
+  proxy: string | null;
+  os: string;
+  hostname: string;
+}
+
+export async function fetchEnv(): Promise<EnvInfo> {
+  const r = await fetch('/api/env');
+  return r.json();
+}
+
+export interface CopilotQuota {
+  available: boolean;
+  chat_enabled: boolean;
+  premium_requests_used: number | null;
+  premium_requests_limit: number | null;
+  alert_level: 'ok' | 'warning' | 'critical';
+  reset_at: string | null;
+  plan: string | null;
+  error: string | null;
+}
+
+export async function fetchCopilotQuota(): Promise<CopilotQuota> {
+  const r = await fetch('/api/copilot/quota');
+  return r.json();
+}

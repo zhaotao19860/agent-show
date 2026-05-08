@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useMemo, useState } from 'react';
-import { fetchOverview, fetchActivity, fetchActivityGrid, fetchSessions, fetchSkills, subscribeEvents, type SkillEntry } from '../api';
+import { fetchOverview, fetchActivity, fetchActivityGrid, fetchSessions, fetchSkills, subscribeEvents, fetchEnv, fetchCopilotQuota, type SkillEntry, type EnvInfo, type CopilotQuota } from '../api';
 import { useT } from '../i18n';
 import { categorize, CATEGORY_ORDER, categoryLabel } from '../skillCategory';
 import { CategoryDonut } from './CategoryDonut';
@@ -12,6 +12,7 @@ const COLLAPSE_EVENT = 'pawscope-collapse-toggle';
 
 const COLLAPSIBLE_IDS = [
   'insights', 'today-efficiency', 'token-usage', 'cost-summary',
+  'env-quota',
   'activity-heatmap', 'week-grid', 'heartbeat', 'weekly-trend',
   'word-cloud', 'prompt-length', 'tech-stack',
   'dangerous-tools', 'hot-files', 'top-tools', 'tool-trend',
@@ -1516,6 +1517,8 @@ export function OverviewPanel({
     total_calls: number; sessions_affected: number;
   } | null>(null);
   const [hotFiles, setHotFiles] = useState<{ path: string; mentions: number; sessions: number; samples?: { session_id: string; snippet: string }[] }[]>([]);
+  const [envInfo, setEnvInfo] = useState<EnvInfo | null>(null);
+  const [copilotQuota, setCopilotQuota] = useState<CopilotQuota | null>(null);
   const [, forceTick] = useState(0);
   const [err, setErr] = useState<string | null>(null);
 
@@ -1574,6 +1577,12 @@ export function OverviewPanel({
       fetch('/api/files/hot')
         .then(r => r.ok ? r.json() : null)
         .then(d => { if (!cancelled && Array.isArray(d)) setHotFiles(d); })
+        .catch(() => {});
+      fetchEnv()
+        .then(d => { if (!cancelled) setEnvInfo(d); })
+        .catch(() => {});
+      fetchCopilotQuota()
+        .then(d => { if (!cancelled) setCopilotQuota(d); })
         .catch(() => {});
     };
     load();
@@ -1880,6 +1889,80 @@ export function OverviewPanel({
             </div>
           </CollapsibleCard>
         )}
+
+        <SectionGroup label={t('group.environment')} />
+        <CollapsibleWrap id="env-quota" label={`🌐 ${t('group.environment')}`}>
+        <CollapsibleCard id="env-quota" icon="🌐" title={t('group.environment')}>
+          <div className="px-4 py-3 space-y-3">
+            {/* Environment info row */}
+            {envInfo && (
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs">
+                <div>
+                  <span className="text-slate-500">{t('env.ip')}</span>
+                  <div className="text-slate-200 font-mono">{envInfo.ip}</div>
+                </div>
+                <div>
+                  <span className="text-slate-500">{t('env.location')}</span>
+                  <div className="text-slate-200">{envInfo.city ? `${envInfo.city}, ${envInfo.country}` : envInfo.country || '—'}</div>
+                </div>
+                <div>
+                  <span className="text-slate-500">{t('env.proxy')}</span>
+                  <div className={envInfo.proxy ? 'text-amber-400' : 'text-emerald-400'}>{envInfo.proxy || t('env.no_proxy')}</div>
+                </div>
+                <div>
+                  <span className="text-slate-500">{t('env.os')}</span>
+                  <div className="text-slate-200 capitalize">{envInfo.os}</div>
+                </div>
+                <div>
+                  <span className="text-slate-500">{t('env.hostname')}</span>
+                  <div className="text-slate-200 font-mono truncate">{envInfo.hostname}</div>
+                </div>
+              </div>
+            )}
+
+            {/* Copilot quota */}
+            {copilotQuota && !copilotQuota.error && copilotQuota.available && (
+              <div className="border-t border-slate-800 pt-3 space-y-2">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-slate-400 font-medium">GitHub Copilot</span>
+                  {copilotQuota.plan && <span className="text-[10px] bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded">{copilotQuota.plan}</span>}
+                </div>
+                {copilotQuota.premium_requests_limit != null && copilotQuota.premium_requests_limit > 0 && (
+                  <div className="space-y-1">
+                    <div className="flex justify-between text-[11px]">
+                      <span className="text-slate-500">{t('env.premium_used')}</span>
+                      <span className="text-slate-300">{copilotQuota.premium_requests_used ?? 0} / {copilotQuota.premium_requests_limit}</span>
+                    </div>
+                    <div className="h-2 bg-slate-800 rounded-full overflow-hidden">
+                      <div
+                        className={`h-full rounded-full transition-all ${
+                          copilotQuota.alert_level === 'critical' ? 'bg-rose-500' :
+                          copilotQuota.alert_level === 'warning' ? 'bg-amber-500' : 'bg-emerald-500'
+                        }`}
+                        style={{ width: `${Math.min(100, ((copilotQuota.premium_requests_used ?? 0) / copilotQuota.premium_requests_limit) * 100)}%` }}
+                      />
+                    </div>
+                    {copilotQuota.alert_level !== 'ok' && (
+                      <p className={`text-[11px] ${copilotQuota.alert_level === 'critical' ? 'text-rose-400' : 'text-amber-400'}`}>
+                        {copilotQuota.alert_level === 'critical' ? t('env.alert_critical') : t('env.alert_warning')}
+                      </p>
+                    )}
+                  </div>
+                )}
+                <div className="flex gap-4 text-[11px]">
+                  <span className="text-slate-500">{t('env.chat')}: <span className={copilotQuota.chat_enabled ? 'text-emerald-400' : 'text-slate-600'}>{copilotQuota.chat_enabled ? t('env.enabled') : t('env.disabled')}</span></span>
+                  {copilotQuota.reset_at && <span className="text-slate-500">{t('env.reset')}: <span className="text-slate-400">{copilotQuota.reset_at}</span></span>}
+                </div>
+              </div>
+            )}
+            {copilotQuota && copilotQuota.error && (
+              <div className="border-t border-slate-800 pt-3">
+                <p className="text-[11px] text-slate-600">{copilotQuota.error.includes('Not logged in') ? t('env.not_logged_in') : t('env.copilot_unavailable')}</p>
+              </div>
+            )}
+          </div>
+        </CollapsibleCard>
+        </CollapsibleWrap>
 
         <SectionGroup label={t('group.activity')} />
         {activity && <CollapsibleWrap id="activity-heatmap" label={lang === 'zh' ? '24 小时活跃度' : '24h Activity'}><ActivityHeatmap buckets={activity} /></CollapsibleWrap>}
