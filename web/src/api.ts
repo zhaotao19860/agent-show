@@ -616,6 +616,19 @@ export async function fetchEnv(): Promise<EnvInfo> {
   return r.json();
 }
 
+export interface QuotaEntry {
+  entitlement: number;
+  remaining: number;
+  percent_remaining: number;
+  unlimited: boolean;
+}
+
+export interface QuotaSnapshots {
+  premium: QuotaEntry | null;
+  chat: QuotaEntry | null;
+  completions: QuotaEntry | null;
+}
+
 export interface CopilotQuota {
   available: boolean;
   chat_enabled: boolean;
@@ -626,6 +639,7 @@ export interface CopilotQuota {
   plan: string | null;
   access_sku: string | null;
   error: string | null;
+  quota_snapshots: QuotaSnapshots | null;
 }
 
 export async function fetchCopilotQuota(): Promise<CopilotQuota> {

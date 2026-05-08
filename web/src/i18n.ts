@@ -533,6 +533,7 @@ const dict: Record<string, { en: string; zh: string }> = {
   'env.no_proxy': { en: 'Direct', zh: '直连' },
   'env.not_logged_in': { en: 'Log in to view Copilot quota', zh: '登录后查看 Copilot 配额' },
   'env.copilot_unavailable': { en: 'Copilot quota unavailable (needs copilot scope or subscription)', zh: 'Copilot 配额不可用（需要 copilot 权限或订阅）' },
+  'env.subscription_inactive': { en: 'Subscription inactive — reactivate at github.com/settings/copilot', zh: '订阅未激活 — 前往 github.com/settings/copilot 续费' },
   'env.premium_used': { en: 'Premium requests', zh: '高级请求' },
   'env.plan': { en: 'Plan', zh: '计划' },
   'env.reset': { en: 'Resets', zh: '重置时间' },

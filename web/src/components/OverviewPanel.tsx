@@ -1958,6 +1958,33 @@ export function OverviewPanel({
                     )}
                   </div>
                 )}
+                {/* Quota snapshots (when subscription is active) */}
+                {copilotQuota.quota_snapshots && (
+                  <div className="space-y-1.5 mt-2">
+                    {(['premium', 'chat', 'completions'] as const).map(key => {
+                      const entry = copilotQuota.quota_snapshots?.[key];
+                      if (!entry || entry.unlimited) return null;
+                      const used = entry.entitlement - entry.remaining;
+                      const pct = entry.entitlement > 0 ? (used / entry.entitlement) * 100 : 0;
+                      const label = key === 'premium' ? 'Premium' : key === 'chat' ? 'Chat' : 'Completions';
+                      return (
+                        <div key={key} className="space-y-0.5">
+                          <div className="flex justify-between text-[11px]">
+                            <span className="text-slate-500">{label}</span>
+                            <span className="text-slate-400">{used}/{entry.entitlement} ({entry.percent_remaining.toFixed(0)}% left)</span>
+                          </div>
+                          <div className="h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                            <div className={`h-full rounded-full ${pct >= 95 ? 'bg-rose-500' : pct >= 80 ? 'bg-amber-500' : 'bg-emerald-500'}`} style={{ width: `${Math.min(100, pct)}%` }} />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+                {/* No active subscription indicator */}
+                {copilotQuota.access_sku === 'no_access' && !copilotQuota.quota_snapshots && (
+                  <p className="text-[11px] text-amber-600/80 mt-1">⚠ {t('env.subscription_inactive')}</p>
+                )}
                 <div className="flex gap-4 text-[11px]">
                   <span className="text-slate-500">{t('env.chat')}: <span className={copilotQuota.chat_enabled ? 'text-emerald-400' : 'text-slate-600'}>{copilotQuota.chat_enabled ? t('env.enabled') : t('env.disabled')}</span></span>
                   {copilotQuota.reset_at && <span className="text-slate-500">{t('env.reset')}: <span className="text-slate-400">{copilotQuota.reset_at}</span></span>}

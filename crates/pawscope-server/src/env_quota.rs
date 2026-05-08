@@ -84,6 +84,22 @@ pub struct CopilotQuota {
     pub plan: Option<String>,
     pub access_sku: Option<String>,
     pub error: Option<String>,
+    pub quota_snapshots: Option<QuotaSnapshots>,
+}
+
+#[derive(Serialize, Default)]
+pub struct QuotaSnapshots {
+    pub premium: Option<QuotaEntry>,
+    pub chat: Option<QuotaEntry>,
+    pub completions: Option<QuotaEntry>,
+}
+
+#[derive(Serialize)]
+pub struct QuotaEntry {
+    pub entitlement: u64,
+    pub remaining: u64,
+    pub percent_remaining: f64,
+    pub unlimited: bool,
 }
 
 pub async fn get_copilot_quota(State(s): State<AppState>) -> impl IntoResponse {
@@ -101,6 +117,7 @@ pub async fn get_copilot_quota(State(s): State<AppState>) -> impl IntoResponse {
                 plan: None,
                 access_sku: None,
                 error: Some("Not logged in".into()),
+                quota_snapshots: None,
             }),
         );
     }
@@ -119,25 +136,10 @@ pub async fn get_copilot_quota(State(s): State<AppState>) -> impl IntoResponse {
                 plan: None,
                 access_sku: None,
                 error: Some(format!("Failed to fetch: {e}")),
+                quota_snapshots: None,
             }),
         ),
     }
-}
-
-#[derive(Deserialize, Debug)]
-struct CopilotInternalResponse {
-    #[serde(default)]
-    copilot_plan: Option<String>,
-    #[serde(default)]
-    chat_enabled: Option<bool>,
-    #[serde(default)]
-    access_type_sku: Option<String>,
-    #[serde(default)]
-    premium_requests_used: Option<u64>,
-    #[serde(default)]
-    premium_requests_limit: Option<u64>,
-    #[serde(default)]
-    next_cycle_start_date: Option<String>,
 }
 
 async fn fetch_copilot_usage(token: &str) -> anyhow::Result<CopilotQuota> {
@@ -145,12 +147,19 @@ async fn fetch_copilot_usage(token: &str) -> anyhow::Result<CopilotQuota> {
         .timeout(std::time::Duration::from_secs(10))
         .build()?;
 
-    // Use the copilot_internal/user endpoint (works with standard PATs)
+    // Use PupKit-style headers to get full quota_snapshots
     let resp = client
         .get("https://api.github.com/copilot_internal/user")
         .header("Authorization", format!("token {token}"))
-        .header("User-Agent", "Pawscope/1.0")
+        .header("User-Agent", "GitHubCopilotChat/0.26.7")
         .header("Accept", "application/json")
+        .header("editor-plugin-version", "copilot-chat/0.26.7")
+        .header("editor-version", "vscode/1.104.3")
+        .header("x-github-api-version", "2025-04-01")
+        .header(
+            "x-vscode-user-agent-library-version",
+            "electron-fetch",
+        )
         .send()
         .await?;
 
@@ -160,26 +169,48 @@ async fn fetch_copilot_usage(token: &str) -> anyhow::Result<CopilotQuota> {
         anyhow::bail!("GitHub API {status}: {body}");
     }
 
-    let data: CopilotInternalResponse = resp.json().await?;
+    let raw: serde_json::Value = resp.json().await?;
 
-    let chat_enabled = data.chat_enabled.unwrap_or(false);
-    let plan = data.copilot_plan.clone();
-    let access_sku = data.access_type_sku.clone();
+    let chat_enabled = raw.get("chat_enabled").and_then(|v| v.as_bool()).unwrap_or(false);
+    let plan = raw.get("copilot_plan").and_then(|v| v.as_str()).map(String::from);
+    let access_sku = raw.get("access_type_sku").and_then(|v| v.as_str()).map(String::from);
+    let reset_at = raw.get("quota_reset_date").and_then(|v| v.as_str()).map(String::from);
 
-    let used = data.premium_requests_used.unwrap_or(0);
-    let limit = data.premium_requests_limit.unwrap_or(0);
-
-    let alert_level = if limit == 0 {
-        "ok".to_string()
-    } else {
-        let pct = (used as f64 / limit as f64) * 100.0;
-        if pct >= 95.0 {
-            "critical".to_string()
-        } else if pct >= 80.0 {
-            "warning".to_string()
+    // Parse quota_snapshots (available when subscription is active)
+    let quota_snapshots = raw.get("quota_snapshots").and_then(|snapshots| {
+        let premium = snapshots.get("premium_interactions").and_then(parse_quota_entry);
+        let chat = snapshots.get("chat").and_then(parse_quota_entry);
+        let completions = snapshots.get("completions").and_then(parse_quota_entry);
+        if premium.is_some() || chat.is_some() || completions.is_some() {
+            Some(QuotaSnapshots { premium, chat, completions })
         } else {
-            "ok".to_string()
+            None
         }
+    });
+
+    // Derive premium_used/limit from quota_snapshots if available
+    let (premium_used, premium_limit) = match &quota_snapshots {
+        Some(qs) => match &qs.premium {
+            Some(p) if !p.unlimited => {
+                let used = p.entitlement.saturating_sub(p.remaining);
+                (Some(used), Some(p.entitlement))
+            }
+            _ => (None, None),
+        },
+        None => (
+            raw.get("premium_requests_used").and_then(|v| v.as_u64()),
+            raw.get("premium_requests_limit").and_then(|v| v.as_u64()),
+        ),
+    };
+
+    let alert_level = match (premium_used, premium_limit) {
+        (Some(used), Some(limit)) if limit > 0 => {
+            let pct = (used as f64 / limit as f64) * 100.0;
+            if pct >= 95.0 { "critical".to_string() }
+            else if pct >= 80.0 { "warning".to_string() }
+            else { "ok".to_string() }
+        }
+        _ => "ok".to_string(),
     };
 
     let available = plan.is_some();
@@ -187,14 +218,23 @@ async fn fetch_copilot_usage(token: &str) -> anyhow::Result<CopilotQuota> {
     Ok(CopilotQuota {
         available,
         chat_enabled,
-        premium_requests_used: data.premium_requests_used,
-        premium_requests_limit: data.premium_requests_limit,
+        premium_requests_used: premium_used,
+        premium_requests_limit: premium_limit,
         alert_level,
-        reset_at: data.next_cycle_start_date,
+        reset_at,
         plan,
         access_sku,
         error: None,
+        quota_snapshots,
     })
+}
+
+fn parse_quota_entry(value: &serde_json::Value) -> Option<QuotaEntry> {
+    let entitlement = value.get("entitlement").and_then(|v| v.as_u64()).unwrap_or(0);
+    let remaining = value.get("remaining").and_then(|v| v.as_u64()).unwrap_or(0);
+    let percent_remaining = value.get("percent_remaining").and_then(|v| v.as_f64()).unwrap_or(0.0);
+    let unlimited = value.get("unlimited").and_then(|v| v.as_bool()).unwrap_or(false);
+    Some(QuotaEntry { entitlement, remaining, percent_remaining, unlimited })
 }
 
 // ---------------------------------------------------------------------------
