@@ -539,6 +539,7 @@ const dict: Record<string, { en: string; zh: string }> = {
   'env.chat': { en: 'Chat', zh: '聊天' },
   'env.enabled': { en: 'Enabled', zh: '已开启' },
   'env.disabled': { en: 'Disabled', zh: '未开启' },
+  'env.ai_usage': { en: 'AI Provider Usage (all sessions)', zh: 'AI 提供者用量（全部会话）' },
   'env.alert_warning': { en: '⚠️ Usage above 80%', zh: '⚠️ 使用率超过 80%' },
   'env.alert_critical': { en: '🚨 Usage above 95%', zh: '🚨 使用率超过 95%' },
   'misc.expand_all': { en: 'Expand All', zh: '全部展开' },

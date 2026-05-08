@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useMemo, useState } from 'react';
-import { fetchOverview, fetchActivity, fetchActivityGrid, fetchSessions, fetchSkills, subscribeEvents, fetchEnv, fetchCopilotQuota, type SkillEntry, type EnvInfo, type CopilotQuota } from '../api';
+import { fetchOverview, fetchActivity, fetchActivityGrid, fetchSessions, fetchSkills, subscribeEvents, fetchEnv, fetchCopilotQuota, fetchProviderUsage, type SkillEntry, type EnvInfo, type CopilotQuota, type ProviderUsage } from '../api';
 import { useT } from '../i18n';
 import { categorize, CATEGORY_ORDER, categoryLabel } from '../skillCategory';
 import { CategoryDonut } from './CategoryDonut';
@@ -1519,6 +1519,7 @@ export function OverviewPanel({
   const [hotFiles, setHotFiles] = useState<{ path: string; mentions: number; sessions: number; samples?: { session_id: string; snippet: string }[] }[]>([]);
   const [envInfo, setEnvInfo] = useState<EnvInfo | null>(null);
   const [copilotQuota, setCopilotQuota] = useState<CopilotQuota | null>(null);
+  const [providerUsage, setProviderUsage] = useState<ProviderUsage | null>(null);
   const [, forceTick] = useState(0);
   const [err, setErr] = useState<string | null>(null);
 
@@ -1583,6 +1584,9 @@ export function OverviewPanel({
         .catch(() => {});
       fetchCopilotQuota()
         .then(d => { if (!cancelled) setCopilotQuota(d); })
+        .catch(() => {});
+      fetchProviderUsage()
+        .then(d => { if (!cancelled) setProviderUsage(d); })
         .catch(() => {});
     };
     load();
@@ -1963,6 +1967,39 @@ export function OverviewPanel({
             {copilotQuota && copilotQuota.error && (
               <div className="border-t border-slate-800 pt-3">
                 <p className="text-[11px] text-slate-600">{copilotQuota.error.includes('Not logged in') ? t('env.not_logged_in') : t('env.copilot_unavailable')}</p>
+              </div>
+            )}
+
+            {/* Provider usage from session data */}
+            {providerUsage && providerUsage.providers.length > 0 && (
+              <div className="border-t border-slate-800 pt-3 space-y-2">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-slate-400 font-medium">{t('env.ai_usage')}</span>
+                  <span className="text-[10px] text-slate-600">{providerUsage.total_sessions} sessions</span>
+                </div>
+                <div className="space-y-1.5">
+                  {providerUsage.providers.map(p => {
+                    const total = p.tokens_in + p.tokens_out;
+                    const pct = providerUsage.total_tokens_in + providerUsage.total_tokens_out > 0
+                      ? (total / (providerUsage.total_tokens_in + providerUsage.total_tokens_out)) * 100
+                      : 0;
+                    const colors: Record<string, string> = {
+                      Claude: 'bg-orange-500', GPT: 'bg-emerald-500', Codex: 'bg-blue-500',
+                      Gemini: 'bg-purple-500', DeepSeek: 'bg-cyan-500', Other: 'bg-slate-500',
+                    };
+                    return (
+                      <div key={p.name} className="space-y-0.5">
+                        <div className="flex justify-between text-[11px]">
+                          <span className="text-slate-400">{p.name} <span className="text-slate-600">({p.sessions})</span></span>
+                          <span className="text-slate-500 font-mono">{total >= 1_000_000 ? `${(total / 1_000_000).toFixed(1)}M` : total >= 1000 ? `${(total / 1000).toFixed(0)}K` : total}</span>
+                        </div>
+                        <div className="h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                          <div className={`h-full rounded-full ${colors[p.name] || 'bg-slate-500'}`} style={{ width: `${Math.max(2, pct)}%` }} />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             )}
           </div>

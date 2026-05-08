@@ -632,3 +632,23 @@ export async function fetchCopilotQuota(): Promise<CopilotQuota> {
   const r = await fetch('/api/copilot/quota');
   return r.json();
 }
+
+export interface ProviderStats {
+  name: string;
+  tokens_in: number;
+  tokens_out: number;
+  sessions: number;
+  models: string[];
+}
+
+export interface ProviderUsage {
+  providers: ProviderStats[];
+  total_tokens_in: number;
+  total_tokens_out: number;
+  total_sessions: number;
+}
+
+export async function fetchProviderUsage(): Promise<ProviderUsage> {
+  const r = await fetch('/api/usage/providers');
+  return r.json();
+}

@@ -196,3 +196,117 @@ async fn fetch_copilot_usage(token: &str) -> anyhow::Result<CopilotQuota> {
         error: None,
     })
 }
+
+// ---------------------------------------------------------------------------
+// GET /api/usage/providers — AI provider usage aggregation from sessions
+// ---------------------------------------------------------------------------
+
+#[derive(Serialize)]
+pub struct ProviderUsage {
+    pub providers: Vec<ProviderStats>,
+    pub total_tokens_in: u64,
+    pub total_tokens_out: u64,
+    pub total_sessions: u32,
+}
+
+#[derive(Serialize)]
+pub struct ProviderStats {
+    pub name: String,
+    pub tokens_in: u64,
+    pub tokens_out: u64,
+    pub sessions: u32,
+    pub models: Vec<String>,
+}
+
+fn model_to_provider(model: &str) -> &str {
+    let m = model.to_lowercase();
+    if m.contains("claude") || m.contains("anthropic") || m.contains("sonnet") || m.contains("opus") || m.contains("haiku") {
+        "Claude"
+    } else if m.contains("codex") {
+        "Codex"
+    } else if m.contains("gpt") || m.contains("o1") || m.contains("o3") || m.contains("o4") {
+        "GPT"
+    } else if m.contains("gemini") {
+        "Gemini"
+    } else if m.contains("deepseek") {
+        "DeepSeek"
+    } else {
+        "Other"
+    }
+}
+
+pub async fn get_provider_usage(State(s): State<AppState>) -> impl IntoResponse {
+    let sessions = match s.adapter.list_sessions().await {
+        Ok(v) => v,
+        Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
+    };
+
+    use std::collections::{HashMap, HashSet};
+    struct Accum {
+        tokens_in: u64,
+        tokens_out: u64,
+        sessions: u32,
+        models: HashSet<String>,
+    }
+
+    let mut map: HashMap<&str, Accum> = HashMap::new();
+    let mut total_in: u64 = 0;
+    let mut total_out: u64 = 0;
+
+    let mut handles = Vec::with_capacity(sessions.len());
+    for sess in &sessions {
+        let adapter = s.adapter.clone();
+        let id = sess.id.clone();
+        let model = sess.model.clone();
+        handles.push(tokio::spawn(async move {
+            let detail = adapter.get_detail(&id).await.ok();
+            (model, detail)
+        }));
+    }
+
+    let mut results: Vec<(Option<String>, Option<pawscope_core::SessionDetail>)> = Vec::new();
+    for h in handles {
+        if let Ok(r) = h.await {
+            results.push(r);
+        }
+    }
+
+    for (model_opt, detail_opt) in &results {
+        let model_str = model_opt.as_deref().unwrap_or("unknown");
+        let provider = model_to_provider(model_str);
+        let entry = map.entry(provider).or_insert_with(|| Accum {
+            tokens_in: 0,
+            tokens_out: 0,
+            sessions: 0,
+            models: HashSet::new(),
+        });
+        entry.sessions += 1;
+        entry.models.insert(model_str.to_string());
+        if let Some(d) = detail_opt {
+            entry.tokens_in += d.tokens_in;
+            entry.tokens_out += d.tokens_out;
+            total_in += d.tokens_in;
+            total_out += d.tokens_out;
+        }
+    }
+
+    let mut providers: Vec<ProviderStats> = map
+        .into_iter()
+        .map(|(name, a)| ProviderStats {
+            name: name.to_string(),
+            tokens_in: a.tokens_in,
+            tokens_out: a.tokens_out,
+            sessions: a.sessions,
+            models: a.models.into_iter().collect(),
+        })
+        .collect();
+    providers.sort_by(|a, b| (b.tokens_in + b.tokens_out).cmp(&(a.tokens_in + a.tokens_out)));
+
+    Json(ProviderUsage {
+        providers,
+        total_tokens_in: total_in,
+        total_tokens_out: total_out,
+        total_sessions: results.len() as u32,
+    })
+    .into_response()
+}
