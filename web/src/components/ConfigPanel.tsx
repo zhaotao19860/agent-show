@@ -213,15 +213,15 @@ export function ConfigPanel({ onOpenSkills, sessions = [], tokensMap = {} }: Con
               {/* Copilot agent: show quota tree */}
               {ac.agent === 'copilot' && copilotQuota && !copilotQuota.error && copilotQuota.available && (
                 <div className="pt-2 border-t border-slate-800">
-                  <div className="font-mono text-[11px] space-y-0.5">
+                  <div className="font-mono text-xs space-y-1">
                     <div className="flex">
-                      <span className="text-slate-600 w-5 flex-shrink-0">├</span>
-                      <span className="text-slate-500 w-20 flex-shrink-0">Plan</span>
+                      <span className="text-slate-600 w-6 flex-shrink-0">├</span>
+                      <span className="text-slate-500 w-24 flex-shrink-0">Plan</span>
                       <span className="text-slate-200">{copilotQuota.plan ?? '—'}</span>
                     </div>
                     <div className="flex items-center">
-                      <span className="text-slate-600 w-5 flex-shrink-0">├</span>
-                      <span className="text-slate-500 w-20 flex-shrink-0">Premium</span>
+                      <span className="text-slate-600 w-6 flex-shrink-0">├</span>
+                      <span className="text-slate-500 w-24 flex-shrink-0">Premium</span>
                       {copilotQuota.quota_snapshots?.premium ? (
                         copilotQuota.quota_snapshots.premium.unlimited ? (
                           <span className="text-emerald-400">unlimited</span>
@@ -233,7 +233,7 @@ export function ConfigPanel({ onOpenSkills, sessions = [], tokensMap = {} }: Con
                             <span className="inline-block w-16 h-1.5 bg-slate-800 rounded-full overflow-hidden align-middle mx-1">
                               <span className={`block h-full rounded-full ${copilotQuota.quota_snapshots.premium.percent_remaining < 20 ? 'bg-rose-500' : copilotQuota.quota_snapshots.premium.percent_remaining < 40 ? 'bg-amber-500' : 'bg-emerald-500'}`} style={{ width: `${100 - copilotQuota.quota_snapshots.premium.percent_remaining}%` }} />
                             </span>
-                            <span className="text-slate-500 text-[10px]">{copilotQuota.quota_snapshots.premium.percent_remaining.toFixed(1)}%</span>
+                            <span className="text-slate-500 text-[11px]">{copilotQuota.quota_snapshots.premium.percent_remaining.toFixed(1)}%</span>
                           </span>
                         )
                       ) : (
@@ -241,28 +241,28 @@ export function ConfigPanel({ onOpenSkills, sessions = [], tokensMap = {} }: Con
                       )}
                     </div>
                     <div className="flex">
-                      <span className="text-slate-600 w-5 flex-shrink-0">├</span>
-                      <span className="text-slate-500 w-20 flex-shrink-0">Chat</span>
+                      <span className="text-slate-600 w-6 flex-shrink-0">├</span>
+                      <span className="text-slate-500 w-24 flex-shrink-0">Chat</span>
                       <span className={copilotQuota.quota_snapshots?.chat?.unlimited ? 'text-emerald-400' : 'text-slate-600'}>{copilotQuota.quota_snapshots?.chat?.unlimited ? 'unlimited' : '—'}</span>
                     </div>
                     <div className="flex">
-                      <span className="text-slate-600 w-5 flex-shrink-0">├</span>
-                      <span className="text-slate-500 w-20 flex-shrink-0">Complete</span>
+                      <span className="text-slate-600 w-6 flex-shrink-0">├</span>
+                      <span className="text-slate-500 w-24 flex-shrink-0">Complete</span>
                       <span className={copilotQuota.quota_snapshots?.completions?.unlimited ? 'text-emerald-400' : 'text-slate-600'}>{copilotQuota.quota_snapshots?.completions?.unlimited ? 'unlimited' : '—'}</span>
                     </div>
                     <div className="flex">
-                      <span className="text-slate-600 w-5 flex-shrink-0">├</span>
-                      <span className="text-slate-500 w-20 flex-shrink-0">Reset</span>
+                      <span className="text-slate-600 w-6 flex-shrink-0">├</span>
+                      <span className="text-slate-500 w-24 flex-shrink-0">Reset</span>
                       <span className="text-slate-300">{copilotQuota.reset_at ?? '—'}</span>
                     </div>
                     <div className="flex">
-                      <span className="text-slate-600 w-5 flex-shrink-0">├</span>
-                      <span className="text-slate-500 w-20 flex-shrink-0">Total Req</span>
+                      <span className="text-slate-600 w-6 flex-shrink-0">├</span>
+                      <span className="text-slate-500 w-24 flex-shrink-0">Total Req</span>
                       <span className="text-slate-200">{copilotSessions ? `${copilotSessions.total_requests.toLocaleString()} · 24h ${copilotSessions.requests_24h.toLocaleString()}` : '—'}</span>
                     </div>
                     <div className="flex">
-                      <span className="text-slate-600 w-5 flex-shrink-0">└</span>
-                      <span className="text-slate-500 w-20 flex-shrink-0">Sessions</span>
+                      <span className="text-slate-600 w-6 flex-shrink-0">└</span>
+                      <span className="text-slate-500 w-24 flex-shrink-0">Sessions</span>
                       <span className="text-slate-200">{copilotSessions?.session_count ?? '—'}</span>
                     </div>
                   </div>
@@ -279,20 +279,20 @@ export function ConfigPanel({ onOpenSkills, sessions = [], tokensMap = {} }: Con
                 const mainModel = prov.models.length > 0 ? prov.models.sort((a, b) => b.length - a.length)[0] : '—';
                 return (
                   <div className="pt-2 border-t border-slate-800">
-                    <div className="font-mono text-[11px] space-y-0.5">
+                    <div className="font-mono text-xs space-y-1">
                       <div className="flex">
-                        <span className="text-slate-600 w-5 flex-shrink-0">├</span>
-                        <span className="text-slate-500 w-20 flex-shrink-0">Model</span>
+                        <span className="text-slate-600 w-6 flex-shrink-0">├</span>
+                        <span className="text-slate-500 w-24 flex-shrink-0">Model</span>
                         <span className="text-slate-200">{mainModel}</span>
                       </div>
                       <div className="flex">
-                        <span className="text-slate-600 w-5 flex-shrink-0">├</span>
-                        <span className="text-slate-500 w-20 flex-shrink-0">Tokens</span>
+                        <span className="text-slate-600 w-6 flex-shrink-0">├</span>
+                        <span className="text-slate-500 w-24 flex-shrink-0">Tokens</span>
                         <span className="text-slate-200">{formatTokens(total)} · in {formatTokens(prov.tokens_in)} · out {formatTokens(prov.tokens_out)}</span>
                       </div>
                       <div className="flex">
-                        <span className="text-slate-600 w-5 flex-shrink-0">└</span>
-                        <span className="text-slate-500 w-20 flex-shrink-0">Sessions</span>
+                        <span className="text-slate-600 w-6 flex-shrink-0">└</span>
+                        <span className="text-slate-500 w-24 flex-shrink-0">Sessions</span>
                         <span className="text-slate-200">{prov.sessions}</span>
                       </div>
                     </div>
