@@ -113,34 +113,29 @@ open_browser() {
   fi
 }
 
-# Is something already serving on 7777?
-already_up=0
-if curl -fsS -o /dev/null --max-time 1 "$url"; then
-  already_up=1
+# Stop any existing pawscope processes so the new binary takes effect immediately
+existing_pids=$(pgrep -f 'pawscope serve' 2>/dev/null || true)
+if [ -n "$existing_pids" ]; then
+  info "Stopping existing pawscope (PID: $existing_pids)..."
+  echo "$existing_pids" | xargs kill 2>/dev/null || true
+  sleep 2
 fi
 
-if [ "$already_up" = "1" ]; then
-  info "Server already responding at $url — opening browser."
-  open_browser
-elif pgrep -f 'pawscope serve' >/dev/null 2>&1; then
-  info "An existing 'pawscope serve' is running but not on :7777 — leaving it alone."
-  info "If you want the dashboard, stop it first or run: pawscope serve"
-else
-  log_file="${TMPDIR:-/tmp}/pawscope.log"
-  nohup "$prefix/pawscope" serve --no-open >"$log_file" 2>&1 &
-  pid=$!
-  disown 2>/dev/null || true
-  for _ in 1 2 3 4 5 6 7 8 9 10; do
-    if curl -fsS -o /dev/null --max-time 1 "$url"; then
-      break
-    fi
-    sleep 1
-  done
+# Start new server
+log_file="${TMPDIR:-/tmp}/pawscope.log"
+nohup "$prefix/pawscope" serve --no-open >"$log_file" 2>&1 &
+pid=$!
+disown 2>/dev/null || true
+for _ in 1 2 3 4 5 6 7 8 9 10; do
   if curl -fsS -o /dev/null --max-time 1 "$url"; then
-    info "Server is up: $url  (pid $pid, log $log_file)"
-    open_browser
-    info "To stop: kill $pid"
-  else
-    info "Could not auto-start. Run manually: pawscope serve   (log: $log_file)"
+    break
   fi
+  sleep 1
+done
+if curl -fsS -o /dev/null --max-time 1 "$url"; then
+  info "Server is up: $url  (pid $pid, log $log_file)"
+  open_browser
+  info "To stop: kill $pid"
+else
+  info "Could not auto-start. Run manually: pawscope serve   (log: $log_file)"
 fi

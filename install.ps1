@@ -88,28 +88,26 @@ if ($UserPath -notlike "*$Prefix*") {
 $ver = (& $BinDest --version 2>&1) | Out-String
 Write-Host "==> $($ver.Trim())" -ForegroundColor Cyan
 
-# Auto-start
+# Auto-start: stop any existing pawscope, then start new version
 $ServerUrl = "http://127.0.0.1:7777"
-$AlreadyUp = $false
-try {
-    $null = Invoke-WebRequest -Uri $ServerUrl -UseBasicParsing -TimeoutSec 1 -ErrorAction Stop
-    $AlreadyUp = $true
-} catch {}
 
-if ($AlreadyUp) {
-    Write-Host "==> Server already running at $ServerUrl — opening browser." -ForegroundColor Cyan
+# Kill existing pawscope processes so the new binary takes effect immediately
+$existing = Get-Process -Name "pawscope" -ErrorAction SilentlyContinue
+if ($existing) {
+    Write-Host "==> Stopping existing pawscope (PID: $($existing.Id -join ', '))..." -ForegroundColor Yellow
+    $existing | Stop-Process -Force -ErrorAction SilentlyContinue
+    Start-Sleep -Seconds 2
+}
+
+Write-Host "==> Starting pawscope server..." -ForegroundColor Cyan
+Start-Process -FilePath $BinDest -ArgumentList @("serve", "--no-open") -WindowStyle Hidden
+Start-Sleep -Seconds 3
+try {
+    $null = Invoke-WebRequest -Uri $ServerUrl -UseBasicParsing -TimeoutSec 2 -ErrorAction Stop
+    Write-Host "==> Server is up: $ServerUrl" -ForegroundColor Cyan
     Start-Process -FilePath $ServerUrl
-} else {
-    Write-Host "==> Starting pawscope server..." -ForegroundColor Cyan
-    Start-Process -FilePath $BinDest -ArgumentList @("serve", "--no-open") -WindowStyle Hidden
-    Start-Sleep -Seconds 3
-    try {
-        $null = Invoke-WebRequest -Uri $ServerUrl -UseBasicParsing -TimeoutSec 2 -ErrorAction Stop
-        Write-Host "==> Server is up: $ServerUrl" -ForegroundColor Cyan
-        Start-Process -FilePath $ServerUrl
-    } catch {
-        Write-Host "==> Could not auto-start. Run manually: pawscope serve" -ForegroundColor Yellow
-    }
+} catch {
+    Write-Host "==> Could not auto-start. Run manually: pawscope serve" -ForegroundColor Yellow
 }
 
 Write-Host "==> Done!" -ForegroundColor Green
