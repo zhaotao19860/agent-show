@@ -25,20 +25,11 @@ pub struct SkillsResponse {
 }
 
 pub async fn list_skills(State(state): State<AppState>) -> Json<SkillsResponse> {
-    // Aggregate invocation counts from all sessions, and collect distinct
-    // session cwds to discover project-local skills (any cwd containing a
-    // `.github/skills/` directory contributes that root under the
-    // `project-skills` source).
-    let mut invocations: HashMap<String, u64> = HashMap::new();
+    // Collect distinct session cwds to discover project-local skills
     let mut project_skill_roots: Vec<PathBuf> = Vec::new();
     let mut seen_roots: std::collections::HashSet<PathBuf> = std::collections::HashSet::new();
     if let Ok(metas) = state.adapter.list_sessions().await {
         for m in &metas {
-            if let Ok(d) = state.adapter.get_detail(&m.id).await {
-                for k in d.skills_invoked {
-                    *invocations.entry(k).or_default() += 1;
-                }
-            }
             let candidate = m.cwd.join(".github").join("skills");
             if candidate.is_dir() {
                 let canon = candidate.canonicalize().unwrap_or(candidate);
@@ -49,8 +40,16 @@ pub async fn list_skills(State(state): State<AppState>) -> Json<SkillsResponse> 
         }
     }
 
+    // Invocation counts: scan only session metadata (skills_used field in summary)
+    // without loading full detail to avoid OOM on large session stores.
+    let invocations: HashMap<String, u64> = HashMap::new();
+
     let home = std::env::var("HOME").unwrap_or_default();
     let mut sources: Vec<(String, PathBuf)> = vec![
+        (
+            "copilot-skills".to_string(),
+            PathBuf::from(format!("{home}/.copilot/skills")),
+        ),
         (
             "copilot-superpowers".to_string(),
             PathBuf::from(format!("{home}/.copilot/installed-plugins")),
@@ -226,6 +225,7 @@ async fn discovered_project_skill_roots(state: &AppState) -> Vec<PathBuf> {
 fn skill_roots() -> Vec<PathBuf> {
     let home = std::env::var("HOME").unwrap_or_default();
     vec![
+        PathBuf::from(format!("{home}/.copilot/skills")),
         PathBuf::from(format!("{home}/.copilot/installed-plugins")),
         PathBuf::from(format!("{home}/.claude/skills")),
         PathBuf::from(format!("{home}/.agents/skills")),
@@ -488,6 +488,10 @@ pub async fn session_skills(
     )];
     match agent_key.as_str() {
         "copilot" => {
+            sources.push((
+                "copilot-skills",
+                PathBuf::from(format!("{home}/.copilot/skills")),
+            ));
             sources.push((
                 "copilot-superpowers",
                 PathBuf::from(format!("{home}/.copilot/installed-plugins")),
