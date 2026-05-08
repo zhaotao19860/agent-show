@@ -2037,31 +2037,39 @@ export function OverviewPanel({
               </div>
             )}
 
-            {/* Provider usage from session data */}
+            {/* AI Quick Look - tree-style layout matching PupKit */}
             {providerUsage && providerUsage.providers.length > 0 && (
-              <div className="border-t border-slate-800 pt-3 space-y-2">
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-slate-400 font-medium">{t('env.ai_usage')}</span>
-                  <span className="text-[10px] text-slate-600">{providerUsage.total_sessions} sessions</span>
-                </div>
-                <div className="space-y-1.5">
-                  {providerUsage.providers.map(p => {
+              <div className="border-t border-slate-800 pt-3">
+                <div className="text-xs text-slate-400 font-medium mb-2">{t('env.ai_usage')}</div>
+                <div className="font-mono text-[11px] space-y-2">
+                  {providerUsage.providers.map((p, pi) => {
                     const total = p.tokens_in + p.tokens_out;
-                    const pct = providerUsage.total_tokens_in + providerUsage.total_tokens_out > 0
-                      ? (total / (providerUsage.total_tokens_in + providerUsage.total_tokens_out)) * 100
-                      : 0;
+                    const formatTokens = (n: number) => n >= 1_000_000 ? `${(n / 1_000_000).toFixed(1)}M` : n >= 1000 ? `${(n / 1000).toFixed(0)}K` : String(n);
+                    const isLast = pi === providerUsage.providers.length - 1;
+                    const mainModel = p.models.length > 0 ? p.models.sort((a, b) => b.length - a.length)[0] : '—';
                     const colors: Record<string, string> = {
-                      Claude: 'bg-orange-500', GPT: 'bg-emerald-500', Codex: 'bg-blue-500',
-                      Gemini: 'bg-purple-500', DeepSeek: 'bg-cyan-500', Other: 'bg-slate-500',
+                      Claude: 'text-orange-400', GPT: 'text-emerald-400', Codex: 'text-blue-400',
+                      Gemini: 'text-purple-400', DeepSeek: 'text-cyan-400', Other: 'text-slate-400',
                     };
                     return (
-                      <div key={p.name} className="space-y-0.5">
-                        <div className="flex justify-between text-[11px]">
-                          <span className="text-slate-400">{p.name} <span className="text-slate-600">({p.sessions})</span></span>
-                          <span className="text-slate-500 font-mono">{total >= 1_000_000 ? `${(total / 1_000_000).toFixed(1)}M` : total >= 1000 ? `${(total / 1000).toFixed(0)}K` : total}</span>
+                      <div key={p.name}>
+                        <div className="flex">
+                          <span className="text-slate-600 w-5 flex-shrink-0">{isLast ? '└' : '├'}</span>
+                          <span className={`w-16 flex-shrink-0 font-medium ${colors[p.name] || 'text-slate-400'}`}>{p.name}</span>
                         </div>
-                        <div className="h-1.5 bg-slate-800 rounded-full overflow-hidden">
-                          <div className={`h-full rounded-full ${colors[p.name] || 'bg-slate-500'}`} style={{ width: `${Math.max(2, pct)}%` }} />
+                        <div className="ml-5 pl-[1px] border-l border-slate-800 space-y-0.5 pb-1">
+                          <div className="flex ml-3">
+                            <span className="text-slate-600 w-20 flex-shrink-0">Model</span>
+                            <span className="text-slate-200">{mainModel}</span>
+                          </div>
+                          <div className="flex ml-3">
+                            <span className="text-slate-600 w-20 flex-shrink-0">Tokens</span>
+                            <span className="text-slate-200">{formatTokens(total)} · in {formatTokens(p.tokens_in)} · out {formatTokens(p.tokens_out)}</span>
+                          </div>
+                          <div className="flex ml-3">
+                            <span className="text-slate-600 w-20 flex-shrink-0">Sessions</span>
+                            <span className="text-slate-200">{p.sessions}</span>
+                          </div>
                         </div>
                       </div>
                     );

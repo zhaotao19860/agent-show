@@ -143,6 +143,9 @@ pub async fn get_copilot_quota(State(s): State<AppState>) -> impl IntoResponse {
 }
 
 async fn fetch_copilot_usage(token: &str) -> anyhow::Result<CopilotQuota> {
+    // Try PupKit's OAuth token first (has better Copilot access), fall back to provided PAT
+    let effective_token = try_pupkit_token().unwrap_or_else(|| token.to_string());
+
     let client = reqwest::Client::builder()
         .timeout(std::time::Duration::from_secs(10))
         .build()?;
@@ -150,7 +153,7 @@ async fn fetch_copilot_usage(token: &str) -> anyhow::Result<CopilotQuota> {
     // Use PupKit-style headers to get full quota_snapshots
     let resp = client
         .get("https://api.github.com/copilot_internal/user")
-        .header("Authorization", format!("token {token}"))
+        .header("Authorization", format!("token {effective_token}"))
         .header("User-Agent", "GitHubCopilotChat/0.26.7")
         .header("Accept", "application/json")
         .header("editor-plugin-version", "copilot-chat/0.26.7")
@@ -227,6 +230,12 @@ async fn fetch_copilot_usage(token: &str) -> anyhow::Result<CopilotQuota> {
         error: None,
         quota_snapshots,
     })
+}
+
+fn try_pupkit_token() -> Option<String> {
+    let home = dirs::home_dir()?;
+    let path = home.join(".local/share/pupkit/github_token");
+    std::fs::read_to_string(&path).ok().map(|s| s.trim().to_string()).filter(|s| !s.is_empty())
 }
 
 fn parse_quota_entry(value: &serde_json::Value) -> Option<QuotaEntry> {
