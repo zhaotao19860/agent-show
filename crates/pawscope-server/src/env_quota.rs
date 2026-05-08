@@ -82,6 +82,7 @@ pub struct CopilotQuota {
     pub alert_level: String, // "ok" | "warning" | "critical"
     pub reset_at: Option<String>,
     pub plan: Option<String>,
+    pub access_sku: Option<String>,
     pub error: Option<String>,
 }
 
@@ -98,6 +99,7 @@ pub async fn get_copilot_quota(State(s): State<AppState>) -> impl IntoResponse {
                 alert_level: "ok".into(),
                 reset_at: None,
                 plan: None,
+                access_sku: None,
                 error: Some("Not logged in".into()),
             }),
         );
@@ -115,6 +117,7 @@ pub async fn get_copilot_quota(State(s): State<AppState>) -> impl IntoResponse {
                 alert_level: "ok".into(),
                 reset_at: None,
                 plan: None,
+                access_sku: None,
                 error: Some(format!("Failed to fetch: {e}")),
             }),
         ),
@@ -122,19 +125,19 @@ pub async fn get_copilot_quota(State(s): State<AppState>) -> impl IntoResponse {
 }
 
 #[derive(Deserialize, Debug)]
-struct CopilotApiResponse {
+struct CopilotInternalResponse {
     #[serde(default)]
-    copilot_chat: Option<String>,
+    copilot_plan: Option<String>,
     #[serde(default)]
-    copilot_ide_chat: Option<String>,
+    chat_enabled: Option<bool>,
+    #[serde(default)]
+    access_type_sku: Option<String>,
     #[serde(default)]
     premium_requests_used: Option<u64>,
     #[serde(default)]
     premium_requests_limit: Option<u64>,
     #[serde(default)]
     next_cycle_start_date: Option<String>,
-    #[serde(default)]
-    plan_type: Option<String>,
 }
 
 async fn fetch_copilot_usage(token: &str) -> anyhow::Result<CopilotQuota> {
@@ -142,35 +145,12 @@ async fn fetch_copilot_usage(token: &str) -> anyhow::Result<CopilotQuota> {
         .timeout(std::time::Duration::from_secs(10))
         .build()?;
 
+    // Use the copilot_internal/user endpoint (works with standard PATs)
     let resp = client
-        .get("https://api.github.com/copilot_internal/v2/token")
+        .get("https://api.github.com/copilot_internal/user")
         .header("Authorization", format!("token {token}"))
         .header("User-Agent", "Pawscope/1.0")
         .header("Accept", "application/json")
-        .send()
-        .await?;
-
-    if !resp.status().is_success() {
-        // Try the billing endpoint instead
-        return fetch_copilot_billing(token).await;
-    }
-
-    // The token endpoint may not have usage info; try billing
-    fetch_copilot_billing(token).await
-}
-
-async fn fetch_copilot_billing(token: &str) -> anyhow::Result<CopilotQuota> {
-    let client = reqwest::Client::builder()
-        .timeout(std::time::Duration::from_secs(10))
-        .build()?;
-
-    // Try the user copilot endpoint
-    let resp = client
-        .get("https://api.github.com/user/copilot")
-        .header("Authorization", format!("token {token}"))
-        .header("User-Agent", "Pawscope/1.0")
-        .header("Accept", "application/json")
-        .header("X-GitHub-Api-Version", "2022-11-28")
         .send()
         .await?;
 
@@ -180,18 +160,11 @@ async fn fetch_copilot_billing(token: &str) -> anyhow::Result<CopilotQuota> {
         anyhow::bail!("GitHub API {status}: {body}");
     }
 
-    let data: CopilotApiResponse = resp.json().await?;
+    let data: CopilotInternalResponse = resp.json().await?;
 
-    let chat_enabled = data
-        .copilot_chat
-        .as_deref()
-        .map(|v| v == "enabled")
-        .unwrap_or(false)
-        || data
-            .copilot_ide_chat
-            .as_deref()
-            .map(|v| v == "enabled")
-            .unwrap_or(false);
+    let chat_enabled = data.chat_enabled.unwrap_or(false);
+    let plan = data.copilot_plan.clone();
+    let access_sku = data.access_type_sku.clone();
 
     let used = data.premium_requests_used.unwrap_or(0);
     let limit = data.premium_requests_limit.unwrap_or(0);
@@ -209,14 +182,17 @@ async fn fetch_copilot_billing(token: &str) -> anyhow::Result<CopilotQuota> {
         }
     };
 
+    let available = plan.is_some();
+
     Ok(CopilotQuota {
-        available: true,
+        available,
         chat_enabled,
         premium_requests_used: data.premium_requests_used,
         premium_requests_limit: data.premium_requests_limit,
         alert_level,
         reset_at: data.next_cycle_start_date,
-        plan: data.plan_type,
+        plan,
+        access_sku,
         error: None,
     })
 }

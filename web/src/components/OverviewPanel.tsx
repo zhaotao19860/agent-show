@@ -1925,7 +1925,12 @@ export function OverviewPanel({
               <div className="border-t border-slate-800 pt-3 space-y-2">
                 <div className="flex items-center justify-between text-xs">
                   <span className="text-slate-400 font-medium">GitHub Copilot</span>
-                  {copilotQuota.plan && <span className="text-[10px] bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded">{copilotQuota.plan}</span>}
+                  <div className="flex gap-2">
+                    {copilotQuota.plan && <span className="text-[10px] bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded">{copilotQuota.plan}</span>}
+                    {copilotQuota.access_sku && copilotQuota.access_sku !== 'no_access' && (
+                      <span className="text-[10px] bg-emerald-900/40 text-emerald-400 px-1.5 py-0.5 rounded">{copilotQuota.access_sku}</span>
+                    )}
+                  </div>
                 </div>
                 {copilotQuota.premium_requests_limit != null && copilotQuota.premium_requests_limit > 0 && (
                   <div className="space-y-1">

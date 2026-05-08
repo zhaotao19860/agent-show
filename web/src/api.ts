@@ -624,6 +624,7 @@ export interface CopilotQuota {
   alert_level: 'ok' | 'warning' | 'critical';
   reset_at: string | null;
   plan: string | null;
+  access_sku: string | null;
   error: string | null;
 }
 
