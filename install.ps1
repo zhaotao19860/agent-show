@@ -62,7 +62,7 @@ Write-Host "==> Checksum OK" -ForegroundColor Cyan
 
 # Extract
 Expand-Archive -Path $ZipPath -DestinationPath $TmpDir -Force
-$BinSrc = Join-Path $TmpDir "pawscope-${Target}" "pawscope.exe"
+$BinSrc = Join-Path (Join-Path $TmpDir "pawscope-${Target}") "pawscope.exe"
 if (-not (Test-Path $BinSrc)) {
     Write-Host "error: pawscope.exe not found in archive" -ForegroundColor Red
     exit 1
