@@ -124,6 +124,7 @@ pub fn build_app(adapter: Arc<dyn AgentAdapter>) -> (Router, AppState) {
         .route("/api/open-dir", post(api::open_dir))
         .route("/api/env", get(env_quota::get_env))
         .route("/api/copilot/quota", get(env_quota::get_copilot_quota))
+        .route("/api/copilot/sessions", get(env_quota::get_copilot_sessions))
         .route("/api/usage/providers", get(env_quota::get_provider_usage))
         .route("/api/events", get(sse::sse_handler))
         .route("/ws", get(ws::ws_handler))

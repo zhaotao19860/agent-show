@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useMemo, useState } from 'react';
-import { fetchOverview, fetchActivity, fetchActivityGrid, fetchSessions, fetchSkills, subscribeEvents, fetchEnv, fetchCopilotQuota, fetchProviderUsage, type SkillEntry, type EnvInfo, type CopilotQuota, type ProviderUsage } from '../api';
+import { fetchOverview, fetchActivity, fetchActivityGrid, fetchSessions, fetchSkills, subscribeEvents, fetchEnv, fetchCopilotQuota, fetchCopilotSessions, fetchProviderUsage, type SkillEntry, type EnvInfo, type CopilotQuota, type CopilotSessions, type ProviderUsage } from '../api';
 import { useT } from '../i18n';
 import { categorize, CATEGORY_ORDER, categoryLabel } from '../skillCategory';
 import { CategoryDonut } from './CategoryDonut';
@@ -1519,6 +1519,7 @@ export function OverviewPanel({
   const [hotFiles, setHotFiles] = useState<{ path: string; mentions: number; sessions: number; samples?: { session_id: string; snippet: string }[] }[]>([]);
   const [envInfo, setEnvInfo] = useState<EnvInfo | null>(null);
   const [copilotQuota, setCopilotQuota] = useState<CopilotQuota | null>(null);
+  const [copilotSessions, setCopilotSessions] = useState<CopilotSessions | null>(null);
   const [providerUsage, setProviderUsage] = useState<ProviderUsage | null>(null);
   const [, forceTick] = useState(0);
   const [err, setErr] = useState<string | null>(null);
@@ -1584,6 +1585,9 @@ export function OverviewPanel({
         .catch(() => {});
       fetchCopilotQuota()
         .then(d => { if (!cancelled) setCopilotQuota(d); })
+        .catch(() => {});
+      fetchCopilotSessions()
+        .then(d => { if (!cancelled) setCopilotSessions(d); })
         .catch(() => {});
       fetchProviderUsage()
         .then(d => { if (!cancelled) setProviderUsage(d); })
@@ -1924,71 +1928,107 @@ export function OverviewPanel({
               </div>
             )}
 
-            {/* Copilot quota */}
+            {/* Copilot quota - tree-style layout */}
             {copilotQuota && !copilotQuota.error && copilotQuota.available && (
-              <div className="border-t border-slate-800 pt-3 space-y-2">
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-slate-400 font-medium">GitHub Copilot</span>
-                  <div className="flex gap-2">
-                    {copilotQuota.plan && <span className="text-[10px] bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded">{copilotQuota.plan}</span>}
-                    {copilotQuota.access_sku && copilotQuota.access_sku !== 'no_access' && (
-                      <span className="text-[10px] bg-emerald-900/40 text-emerald-400 px-1.5 py-0.5 rounded">{copilotQuota.access_sku}</span>
+              <div className="border-t border-slate-800 pt-3">
+                <div className="text-xs text-slate-400 font-medium mb-2">GitHub Copilot</div>
+                <div className="font-mono text-[11px] space-y-0.5">
+                  {/* Plan */}
+                  <div className="flex">
+                    <span className="text-slate-600 w-5 flex-shrink-0">├</span>
+                    <span className="text-slate-500 w-20 flex-shrink-0">Plan</span>
+                    <span className="text-slate-200">{copilotQuota.plan ?? '—'}</span>
+                  </div>
+                  {/* Premium */}
+                  <div className="flex items-center">
+                    <span className="text-slate-600 w-5 flex-shrink-0">├</span>
+                    <span className="text-slate-500 w-20 flex-shrink-0">Premium</span>
+                    {copilotQuota.quota_snapshots?.premium ? (
+                      copilotQuota.quota_snapshots.premium.unlimited ? (
+                        <span className="text-emerald-400">unlimited</span>
+                      ) : (
+                        <span className="text-slate-200">
+                          {copilotQuota.quota_snapshots.premium.entitlement - copilotQuota.quota_snapshots.premium.remaining}
+                          /{copilotQuota.quota_snapshots.premium.entitlement}
+                          {' '}
+                          <span className="inline-block w-20 h-2 bg-slate-800 rounded-full overflow-hidden align-middle mx-1">
+                            <span className={`block h-full rounded-full ${copilotQuota.quota_snapshots.premium.percent_remaining < 20 ? 'bg-rose-500' : copilotQuota.quota_snapshots.premium.percent_remaining < 40 ? 'bg-amber-500' : 'bg-emerald-500'}`} style={{ width: `${100 - copilotQuota.quota_snapshots.premium.percent_remaining}%` }} />
+                          </span>
+                          <span className="text-slate-500">{copilotQuota.quota_snapshots.premium.percent_remaining.toFixed(1)}% left</span>
+                        </span>
+                      )
+                    ) : copilotQuota.premium_requests_limit != null && copilotQuota.premium_requests_limit > 0 ? (
+                      <span className="text-slate-200">
+                        {copilotQuota.premium_requests_used ?? 0}/{copilotQuota.premium_requests_limit}
+                        {' '}
+                        <span className="inline-block w-20 h-2 bg-slate-800 rounded-full overflow-hidden align-middle mx-1">
+                          <span className={`block h-full rounded-full ${copilotQuota.alert_level === 'critical' ? 'bg-rose-500' : copilotQuota.alert_level === 'warning' ? 'bg-amber-500' : 'bg-emerald-500'}`} style={{ width: `${Math.min(100, ((copilotQuota.premium_requests_used ?? 0) / copilotQuota.premium_requests_limit) * 100)}%` }} />
+                        </span>
+                      </span>
+                    ) : (
+                      <span className="text-slate-600">—</span>
                     )}
+                  </div>
+                  {/* Chat */}
+                  <div className="flex">
+                    <span className="text-slate-600 w-5 flex-shrink-0">├</span>
+                    <span className="text-slate-500 w-20 flex-shrink-0">Chat</span>
+                    {copilotQuota.quota_snapshots?.chat ? (
+                      copilotQuota.quota_snapshots.chat.unlimited ? (
+                        <span className="text-emerald-400">unlimited</span>
+                      ) : (
+                        <span className="text-slate-200">
+                          {copilotQuota.quota_snapshots.chat.entitlement - copilotQuota.quota_snapshots.chat.remaining}
+                          /{copilotQuota.quota_snapshots.chat.entitlement}
+                        </span>
+                      )
+                    ) : copilotQuota.chat_enabled ? (
+                      <span className="text-emerald-400">enabled</span>
+                    ) : (
+                      <span className="text-slate-600">—</span>
+                    )}
+                  </div>
+                  {/* Completions */}
+                  <div className="flex">
+                    <span className="text-slate-600 w-5 flex-shrink-0">├</span>
+                    <span className="text-slate-500 w-20 flex-shrink-0">Complete</span>
+                    {copilotQuota.quota_snapshots?.completions ? (
+                      copilotQuota.quota_snapshots.completions.unlimited ? (
+                        <span className="text-emerald-400">unlimited</span>
+                      ) : (
+                        <span className="text-slate-200">
+                          {copilotQuota.quota_snapshots.completions.entitlement - copilotQuota.quota_snapshots.completions.remaining}
+                          /{copilotQuota.quota_snapshots.completions.entitlement}
+                        </span>
+                      )
+                    ) : (
+                      <span className="text-slate-600">—</span>
+                    )}
+                  </div>
+                  {/* Reset date */}
+                  <div className="flex">
+                    <span className="text-slate-600 w-5 flex-shrink-0">├</span>
+                    <span className="text-slate-500 w-20 flex-shrink-0">Reset</span>
+                    <span className="text-slate-300">{copilotQuota.reset_at ?? '—'}</span>
+                  </div>
+                  {/* Total requests from local sessions */}
+                  <div className="flex">
+                    <span className="text-slate-600 w-5 flex-shrink-0">├</span>
+                    <span className="text-slate-500 w-20 flex-shrink-0">Total Req</span>
+                    <span className="text-slate-200">
+                      {copilotSessions ? `${copilotSessions.total_requests.toLocaleString()} · 24h ${copilotSessions.requests_24h.toLocaleString()}` : '—'}
+                    </span>
+                  </div>
+                  {/* Session count */}
+                  <div className="flex">
+                    <span className="text-slate-600 w-5 flex-shrink-0">└</span>
+                    <span className="text-slate-500 w-20 flex-shrink-0">Sessions</span>
+                    <span className="text-slate-200">{copilotSessions?.session_count ?? '—'}</span>
                   </div>
                 </div>
-                {copilotQuota.premium_requests_limit != null && copilotQuota.premium_requests_limit > 0 && (
-                  <div className="space-y-1">
-                    <div className="flex justify-between text-[11px]">
-                      <span className="text-slate-500">{t('env.premium_used')}</span>
-                      <span className="text-slate-300">{copilotQuota.premium_requests_used ?? 0} / {copilotQuota.premium_requests_limit}</span>
-                    </div>
-                    <div className="h-2 bg-slate-800 rounded-full overflow-hidden">
-                      <div
-                        className={`h-full rounded-full transition-all ${
-                          copilotQuota.alert_level === 'critical' ? 'bg-rose-500' :
-                          copilotQuota.alert_level === 'warning' ? 'bg-amber-500' : 'bg-emerald-500'
-                        }`}
-                        style={{ width: `${Math.min(100, ((copilotQuota.premium_requests_used ?? 0) / copilotQuota.premium_requests_limit) * 100)}%` }}
-                      />
-                    </div>
-                    {copilotQuota.alert_level !== 'ok' && (
-                      <p className={`text-[11px] ${copilotQuota.alert_level === 'critical' ? 'text-rose-400' : 'text-amber-400'}`}>
-                        {copilotQuota.alert_level === 'critical' ? t('env.alert_critical') : t('env.alert_warning')}
-                      </p>
-                    )}
-                  </div>
-                )}
-                {/* Quota snapshots (when subscription is active) */}
-                {copilotQuota.quota_snapshots && (
-                  <div className="space-y-1.5 mt-2">
-                    {(['premium', 'chat', 'completions'] as const).map(key => {
-                      const entry = copilotQuota.quota_snapshots?.[key];
-                      if (!entry || entry.unlimited) return null;
-                      const used = entry.entitlement - entry.remaining;
-                      const pct = entry.entitlement > 0 ? (used / entry.entitlement) * 100 : 0;
-                      const label = key === 'premium' ? 'Premium' : key === 'chat' ? 'Chat' : 'Completions';
-                      return (
-                        <div key={key} className="space-y-0.5">
-                          <div className="flex justify-between text-[11px]">
-                            <span className="text-slate-500">{label}</span>
-                            <span className="text-slate-400">{used}/{entry.entitlement} ({entry.percent_remaining.toFixed(0)}% left)</span>
-                          </div>
-                          <div className="h-1.5 bg-slate-800 rounded-full overflow-hidden">
-                            <div className={`h-full rounded-full ${pct >= 95 ? 'bg-rose-500' : pct >= 80 ? 'bg-amber-500' : 'bg-emerald-500'}`} style={{ width: `${Math.min(100, pct)}%` }} />
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-                {/* No active subscription indicator */}
                 {copilotQuota.access_sku === 'no_access' && !copilotQuota.quota_snapshots && (
-                  <p className="text-[11px] text-amber-600/80 mt-1">⚠ {t('env.subscription_inactive')}</p>
+                  <p className="text-[10px] text-amber-600/80 mt-2 ml-5">⚠ {t('env.subscription_inactive')}</p>
                 )}
-                <div className="flex gap-4 text-[11px]">
-                  <span className="text-slate-500">{t('env.chat')}: <span className={copilotQuota.chat_enabled ? 'text-emerald-400' : 'text-slate-600'}>{copilotQuota.chat_enabled ? t('env.enabled') : t('env.disabled')}</span></span>
-                  {copilotQuota.reset_at && <span className="text-slate-500">{t('env.reset')}: <span className="text-slate-400">{copilotQuota.reset_at}</span></span>}
-                </div>
               </div>
             )}
             {copilotQuota && copilotQuota.error && (

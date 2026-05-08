@@ -238,6 +238,97 @@ fn parse_quota_entry(value: &serde_json::Value) -> Option<QuotaEntry> {
 }
 
 // ---------------------------------------------------------------------------
+// GET /api/copilot/sessions — count local Copilot session requests
+// ---------------------------------------------------------------------------
+
+#[derive(Serialize)]
+pub struct CopilotSessions {
+    pub total_requests: u64,
+    pub requests_24h: u64,
+    pub session_count: u32,
+}
+
+pub async fn get_copilot_sessions() -> impl IntoResponse {
+    let result = tokio::task::spawn_blocking(count_copilot_sessions)
+        .await
+        .unwrap_or(CopilotSessions {
+            total_requests: 0,
+            requests_24h: 0,
+            session_count: 0,
+        });
+    Json(result)
+}
+
+fn count_copilot_sessions() -> CopilotSessions {
+    use std::fs;
+    use std::io::{BufRead, BufReader};
+    use std::time::{SystemTime, Duration};
+
+    let home = match dirs::home_dir() {
+        Some(h) => h,
+        None => return CopilotSessions { total_requests: 0, requests_24h: 0, session_count: 0 },
+    };
+    let session_dir = home.join(".copilot").join("session-state");
+    let entries = match fs::read_dir(&session_dir) {
+        Ok(e) => e,
+        Err(_) => return CopilotSessions { total_requests: 0, requests_24h: 0, session_count: 0 },
+    };
+
+    let cutoff_24h = SystemTime::now()
+        .duration_since(SystemTime::UNIX_EPOCH)
+        .unwrap_or(Duration::ZERO)
+        .as_secs()
+        .saturating_sub(86400);
+
+    let mut total_requests: u64 = 0;
+    let mut requests_24h: u64 = 0;
+    let mut session_count: u32 = 0;
+
+    for entry in entries.flatten() {
+        let path = entry.path();
+        if !path.is_dir() {
+            continue;
+        }
+        let events_file = path.join("events.jsonl");
+        if !events_file.exists() {
+            continue;
+        }
+        session_count += 1;
+
+        // Check file modification time for 24h filter
+        let is_recent = events_file
+            .metadata()
+            .ok()
+            .and_then(|m| m.modified().ok())
+            .and_then(|t| t.duration_since(SystemTime::UNIX_EPOCH).ok())
+            .map(|d| d.as_secs() > cutoff_24h)
+            .unwrap_or(false);
+
+        let file = match fs::File::open(&events_file) {
+            Ok(f) => f,
+            Err(_) => continue,
+        };
+        let reader = BufReader::new(file);
+        let mut file_count: u64 = 0;
+        for line in reader.lines().flatten() {
+            if line.contains("\"assistant.turn_start\"") {
+                file_count += 1;
+            }
+        }
+        total_requests += file_count;
+        if is_recent {
+            requests_24h += file_count;
+        }
+    }
+
+    CopilotSessions {
+        total_requests,
+        requests_24h,
+        session_count,
+    }
+}
+
+// ---------------------------------------------------------------------------
 // GET /api/usage/providers — AI provider usage aggregation from sessions
 // ---------------------------------------------------------------------------
 

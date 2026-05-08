@@ -647,6 +647,17 @@ export async function fetchCopilotQuota(): Promise<CopilotQuota> {
   return r.json();
 }
 
+export interface CopilotSessions {
+  total_requests: number;
+  requests_24h: number;
+  session_count: number;
+}
+
+export async function fetchCopilotSessions(): Promise<CopilotSessions> {
+  const r = await fetch('/api/copilot/sessions');
+  return r.json();
+}
+
 export interface ProviderStats {
   name: string;
   tokens_in: number;
