@@ -395,6 +395,21 @@ export async function deleteSession(id: string): Promise<{ deleted: boolean; id:
   return r.json();
 }
 
+export async function batchDeleteSessions(ids: string[], permanent = false): Promise<{
+  deleted_count: number;
+  failed_count: number;
+  deleted: string[];
+  failed: { id: string; error: string }[];
+}> {
+  const r = await fetch('/api/sessions/batch-delete', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ids, permanent }),
+  });
+  if (!r.ok) throw new Error(`batch-delete ${r.status}`);
+  return r.json();
+}
+
 export async function fetchHidden(): Promise<{ hidden: string[] }> {
   const r = await fetch('/api/sessions/hidden');
   if (!r.ok) return { hidden: [] };

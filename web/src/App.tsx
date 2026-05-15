@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import './styles.css';
-import { fetchSessions, fetchDetail, connectWs, fetchLabels, setLabel as apiSetLabel, fetchHidden, hideSession as apiHide, unhideSession as apiUnhide, deleteSession as apiDelete, type LabelMap } from './api';
+import { fetchSessions, fetchDetail, connectWs, fetchLabels, setLabel as apiSetLabel, fetchHidden, hideSession as apiHide, unhideSession as apiUnhide, deleteSession as apiDelete, batchDeleteSessions as apiBatchDelete, type LabelMap } from './api';
 import { estimateCostUsd, formatUsd } from './pricing';
 import { toast } from './toast';
 import { SessionList } from './components/SessionList';
@@ -100,6 +100,27 @@ export default function App() {
       if (selected === id) setSelected(null);
       toast.success('Session moved to trash');
     }).catch(() => toast.error('Failed to delete session'));
+  };
+  const handleBatchDelete = async (ids: string[]) => {
+    try {
+      const res = await apiBatchDelete(ids);
+      if (res.deleted_count > 0) {
+        const deletedSet = new Set(res.deleted);
+        setSessions(prev => prev.filter(s => !deletedSet.has(s.id)));
+        setHiddenIds(prev => {
+          const n = new Set(prev);
+          deletedSet.forEach(id => n.delete(id));
+          return n;
+        });
+        if (selected && deletedSet.has(selected)) setSelected(null);
+        toast.success(`Deleted ${res.deleted_count} sessions`);
+      }
+      if (res.failed_count > 0) {
+        toast.error(`${res.failed_count} sessions failed to delete`);
+      }
+    } catch {
+      toast.error('Batch delete failed');
+    }
   };
 
   useEffect(() => {
@@ -361,6 +382,7 @@ export default function App() {
           onHide={handleHide}
           onUnhide={handleUnhide}
           onDelete={handleDelete}
+          onBatchDelete={handleBatchDelete}
           hiddenIds={hiddenIds}
           showHidden={showHidden}
           onToggleShowHidden={() => setShowHidden(v => !v)}

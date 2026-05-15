@@ -30,6 +30,7 @@ type Props = {
   onHide?: (id: string) => void;
   onUnhide?: (id: string) => void;
   onDelete?: (id: string) => void;
+  onBatchDelete?: (ids: string[]) => void;
   hiddenIds?: Set<string>;
   showHidden?: boolean;
   onToggleShowHidden?: () => void;
@@ -61,7 +62,7 @@ function sessionRealmKey(s: Session): string {
 
 type SortMode = 'recent' | 'oldest' | 'repo' | 'tokens';
 
-export function SessionList({ items, onSelect, selected, realmFilter, onClearRealmFilter, labels, onToggleStar, onRename, tokensMap, pulseMap, compareIds, onToggleCompare, onHide, onUnhide, onDelete, hiddenIds, showHidden, onToggleShowHidden }: Props) {
+export function SessionList({ items, onSelect, selected, realmFilter, onClearRealmFilter, labels, onToggleStar, onRename, tokensMap, pulseMap, compareIds, onToggleCompare, onHide, onUnhide, onDelete, onBatchDelete, hiddenIds, showHidden, onToggleShowHidden }: Props) {
   const { t } = useT();
   const [query, setQuery] = useState('');
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
@@ -72,6 +73,9 @@ export function SessionList({ items, onSelect, selected, realmFilter, onClearRea
   const [sortMode, setSortMode] = useState<SortMode>('recent');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState('');
+  const [selectMode, setSelectMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [deleting, setDeleting] = useState(false);
 
   const allTags = useMemo(() => {
     const set = new Set<string>();
@@ -84,7 +88,7 @@ export function SessionList({ items, onSelect, selected, realmFilter, onClearRea
     [items]
   );
 
-  const { starred, active, byRepo, repoOrder, total } = useMemo(() => {
+  const { starred, active, byRepo, repoOrder, total, filtered } = useMemo(() => {
     const q = query.trim().toLowerCase();
     const filtered = items.filter(s => {
       if (realmFilter && sessionRealmKey(s) !== realmFilter) return false;
@@ -143,7 +147,7 @@ export function SessionList({ items, onSelect, selected, realmFilter, onClearRea
       return sortMode === 'oldest' ? la.localeCompare(lb) : lb.localeCompare(la);
     });
 
-    return { starred, active, byRepo, repoOrder, total: filtered.length };
+    return { starred, active, byRepo, repoOrder, total: filtered.length, filtered };
   }, [items, query, agentFilter, activeOnly, sortMode, realmFilter, starredOnly, tagFilter, labels, tokensMap]);
 
   const toggle = (key: string) =>
@@ -158,10 +162,21 @@ export function SessionList({ items, onSelect, selected, realmFilter, onClearRea
     const pulse = pulseMap?.[s.id];
     const inCompare = !!compareIds?.includes(s.id);
     const isHidden = hiddenIds?.has(s.id);
+    const isChecked = selectedIds.has(s.id);
     return (
     <button
       key={s.id}
       onClick={(e) => {
+        if (selectMode) {
+          e.preventDefault();
+          setSelectedIds(prev => {
+            const next = new Set(prev);
+            if (next.has(s.id)) next.delete(s.id);
+            else next.add(s.id);
+            return next;
+          });
+          return;
+        }
         // Shift-click toggles compare set (no navigation).
         if (e.shiftKey && onToggleCompare) {
           e.preventDefault();
@@ -172,14 +187,34 @@ export function SessionList({ items, onSelect, selected, realmFilter, onClearRea
       }}
       title={onToggleCompare ? 'Click to open · Shift+click to add to compare' : undefined}
       className={`group block w-full text-left px-3 py-2 border-l-2 transition-colors ${isHidden ? 'opacity-40' : ''} ${
-        selected === s.id
-          ? 'bg-slate-800/80 border-emerald-400'
-          : inCompare
-            ? 'bg-emerald-500/5 border-emerald-500/40'
-            : 'border-transparent hover:bg-slate-800/40'
+        selectMode && isChecked
+          ? 'bg-rose-500/10 border-rose-400'
+          : selected === s.id
+            ? 'bg-slate-800/80 border-emerald-400'
+            : inCompare
+              ? 'bg-emerald-500/5 border-emerald-500/40'
+              : 'border-transparent hover:bg-slate-800/40'
       }`}
     >
       <div className="flex items-center gap-2">
+        {selectMode && (
+          <span
+            className={`w-4 h-4 flex items-center justify-center rounded border flex-shrink-0 text-[10px] cursor-pointer ${
+              isChecked
+                ? 'bg-rose-500 border-rose-400 text-white'
+                : 'border-slate-600 text-transparent hover:border-slate-400'
+            }`}
+            onClick={(e) => {
+              e.stopPropagation();
+              setSelectedIds(prev => {
+                const next = new Set(prev);
+                if (next.has(s.id)) next.delete(s.id);
+                else next.add(s.id);
+                return next;
+              });
+            }}
+          >✓</span>
+        )}
         <span
           className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${
             s.status === 'active' ? 'bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.8)]' : 'bg-slate-600'
@@ -549,6 +584,24 @@ export function SessionList({ items, onSelect, selected, realmFilter, onClearRea
               👁
             </button>
           )}
+          {onBatchDelete && (
+            <button
+              onClick={() => {
+                setSelectMode(v => {
+                  if (v) setSelectedIds(new Set());
+                  return !v;
+                });
+              }}
+              title={selectMode ? 'Exit select mode' : 'Enter select mode for batch delete'}
+              className={`px-2 py-1 text-[11px] rounded border transition-colors flex-shrink-0 ${
+                selectMode
+                  ? 'bg-rose-500/10 border-rose-500/40 text-rose-300'
+                  : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              ☑
+            </button>
+          )}
         </div>
         {allTags.length > 0 && (
           <div className="flex items-center gap-1.5 mt-1.5 overflow-x-auto">
@@ -574,6 +627,44 @@ export function SessionList({ items, onSelect, selected, realmFilter, onClearRea
           </div>
         )}
       </div>
+      {selectMode && (
+        <div className="px-4 py-2 border-b border-rose-500/30 bg-rose-500/5 flex items-center gap-2">
+          <button
+            onClick={() => {
+              const allIds = filtered.map(s => s.id);
+              setSelectedIds(prev => prev.size === allIds.length ? new Set() : new Set(allIds));
+            }}
+            className="px-2 py-0.5 text-[10px] rounded border border-slate-700 text-slate-300 hover:bg-slate-800"
+          >
+            {selectedIds.size === filtered.length ? t('list.deselect_all') : t('list.select_all')}
+          </button>
+          <span className="text-[10px] text-slate-400 flex-1">
+            {selectedIds.size} {t('list.selected')}
+          </span>
+          <button
+            disabled={selectedIds.size === 0 || deleting}
+            onClick={async () => {
+              const count = selectedIds.size;
+              if (!confirm(`${t('list.confirm_batch_delete')} ${count} ${t('list.sessions_unit')}?`)) return;
+              setDeleting(true);
+              try {
+                await onBatchDelete?.([...selectedIds]);
+                setSelectedIds(new Set());
+                setSelectMode(false);
+              } finally {
+                setDeleting(false);
+              }
+            }}
+            className={`px-3 py-1 text-[11px] rounded font-medium transition-colors ${
+              selectedIds.size > 0 && !deleting
+                ? 'bg-rose-600 text-white hover:bg-rose-500'
+                : 'bg-slate-800 text-slate-600 cursor-not-allowed'
+            }`}
+          >
+            {deleting ? t('list.deleting') : `🗑 ${t('list.delete_selected')} (${selectedIds.size})`}
+          </button>
+        </div>
+      )}
       <div ref={scrollRef} className="flex-1 overflow-y-auto py-2">
         {total === 0 ? (
           <div className="text-xs text-slate-600 text-center py-8">{t('list.empty')}</div>

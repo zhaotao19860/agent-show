@@ -57,6 +57,10 @@ pub fn build_app(adapter: Arc<dyn AgentAdapter>) -> (Router, AppState) {
         .route("/api/sessions/pulse", get(api::sessions_pulse))
         .route("/api/sessions/hidden", get(api::list_hidden))
         .route(
+            "/api/sessions/batch-delete",
+            post(api::batch_delete_sessions),
+        )
+        .route(
             "/api/sessions/{id}",
             get(api::get_detail).delete(api::delete_session),
         )

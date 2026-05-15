@@ -267,6 +267,13 @@ const dict: Record<string, { en: string; zh: string }> = {
   'misc.total_estimated': { en: 'total estimated USD', zh: '估算总额（美元）' },
   'misc.unpriced_note': { en: '{N} session(s) skipped: model not in pricing table.', zh: '有 {N} 个会话因模型未在定价表中而未计入。' },
   'list.empty': { en: 'No sessions match.', zh: '没有匹配的会话。' },
+  'list.select_all': { en: 'Select All', zh: '全选' },
+  'list.deselect_all': { en: 'Deselect All', zh: '取消全选' },
+  'list.selected': { en: 'selected', zh: '已选' },
+  'list.delete_selected': { en: 'Delete Selected', zh: '删除选中' },
+  'list.confirm_batch_delete': { en: 'Permanently delete', zh: '确认永久删除' },
+  'list.sessions_unit': { en: 'sessions', zh: '个会话' },
+  'list.deleting': { en: 'Deleting…', zh: '删除中…' },
 
   // SessionDetail
   'detail.select_left': { en: 'Select a session from the left', zh: '从左侧选择一个会话' },

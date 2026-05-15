@@ -2563,6 +2563,7 @@ pub async fn delete_session(
         Ok(trash_path) => {
             let _ = s.hidden.unhide(&id).await;
             s.detail_cache.invalidate(&id).await;
+            s.response_cache.invalidate("overview").await;
             Json(serde_json::json!({
                 "deleted": true,
                 "id": id,
@@ -2572,6 +2573,52 @@ pub async fn delete_session(
         }
         Err(e) => (StatusCode::BAD_REQUEST, e.to_string()).into_response(),
     }
+}
+
+#[derive(serde::Deserialize)]
+pub struct BatchDeleteRequest {
+    pub ids: Vec<String>,
+    /// If true, permanently delete instead of moving to trash.
+    #[serde(default)]
+    pub permanent: bool,
+}
+
+pub async fn batch_delete_sessions(
+    State(s): State<AppState>,
+    Json(req): Json<BatchDeleteRequest>,
+) -> impl IntoResponse {
+    let mut deleted = Vec::new();
+    let mut failed = Vec::new();
+
+    for id in &req.ids {
+        match s.adapter.delete_session(id).await {
+            Ok(trash_path) => {
+                let _ = s.hidden.unhide(id).await;
+                s.detail_cache.invalidate(id).await;
+                if req.permanent {
+                    // Remove from trash too
+                    let _ = tokio::fs::remove_dir_all(&trash_path).await;
+                }
+                deleted.push(id.clone());
+            }
+            Err(e) => {
+                failed.push(serde_json::json!({ "id": id, "error": e.to_string() }));
+            }
+        }
+    }
+
+    // Invalidate aggregate caches after bulk operation
+    s.response_cache.invalidate("overview").await;
+    s.response_cache.invalidate("activity").await;
+    s.response_cache.invalidate("activity_grid").await;
+
+    Json(serde_json::json!({
+        "deleted_count": deleted.len(),
+        "failed_count": failed.len(),
+        "deleted": deleted,
+        "failed": failed,
+    }))
+    .into_response()
 }
 
 // ---------------------------------------------------------------------------
