@@ -628,41 +628,89 @@ export function SessionList({ items, onSelect, selected, realmFilter, onClearRea
         )}
       </div>
       {selectMode && (
-        <div className="px-4 py-2 border-b border-rose-500/30 bg-rose-500/5 flex items-center gap-2">
-          <button
-            onClick={() => {
-              const allIds = filtered.map(s => s.id);
-              setSelectedIds(prev => prev.size === allIds.length ? new Set() : new Set(allIds));
-            }}
-            className="px-2 py-0.5 text-[10px] rounded border border-slate-700 text-slate-300 hover:bg-slate-800"
-          >
-            {selectedIds.size === filtered.length ? t('list.deselect_all') : t('list.select_all')}
-          </button>
-          <span className="text-[10px] text-slate-400 flex-1">
-            {selectedIds.size} {t('list.selected')}
-          </span>
-          <button
-            disabled={selectedIds.size === 0 || deleting}
-            onClick={async () => {
-              const count = selectedIds.size;
-              if (!confirm(`${t('list.confirm_batch_delete')} ${count} ${t('list.sessions_unit')}?`)) return;
-              setDeleting(true);
-              try {
-                await onBatchDelete?.([...selectedIds]);
-                setSelectedIds(new Set());
-                setSelectMode(false);
-              } finally {
-                setDeleting(false);
-              }
-            }}
-            className={`px-3 py-1 text-[11px] rounded font-medium transition-colors ${
-              selectedIds.size > 0 && !deleting
-                ? 'bg-rose-600 text-white hover:bg-rose-500'
-                : 'bg-slate-800 text-slate-600 cursor-not-allowed'
-            }`}
-          >
-            {deleting ? t('list.deleting') : `🗑 ${t('list.delete_selected')} (${selectedIds.size})`}
-          </button>
+        <div className="px-4 py-2 border-b border-rose-500/30 bg-rose-500/5 space-y-1.5">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <button
+              onClick={() => {
+                const allIds = filtered.map(s => s.id);
+                setSelectedIds(prev => prev.size === allIds.length ? new Set() : new Set(allIds));
+              }}
+              className="px-2 py-0.5 text-[10px] rounded border border-slate-700 text-slate-300 hover:bg-slate-800"
+            >
+              {selectedIds.size === filtered.length ? t('list.deselect_all') : t('list.select_all')}
+            </button>
+            <span className="text-[10px] text-slate-600">|</span>
+            {[7, 30, 90, 180].map(days => {
+              const cutoff = Date.now() - days * 86_400_000;
+              return (
+                <button
+                  key={days}
+                  onClick={() => {
+                    const ids = filtered
+                      .filter(s => {
+                        const t = s.last_event_at ? new Date(s.last_event_at).getTime() : 0;
+                        return t > 0 && t < cutoff;
+                      })
+                      .map(s => s.id);
+                    setSelectedIds(new Set(ids));
+                  }}
+                  className="px-2 py-0.5 text-[10px] rounded border border-slate-700 text-slate-400 hover:bg-slate-800 hover:text-slate-200"
+                >
+                  {'>'}{days}{t('list.days_ago')}
+                </button>
+              );
+            })}
+            <button
+              onClick={() => {
+                const ids = filtered.filter(s => s.status !== 'active').map(s => s.id);
+                setSelectedIds(new Set(ids));
+              }}
+              className="px-2 py-0.5 text-[10px] rounded border border-slate-700 text-slate-400 hover:bg-slate-800 hover:text-slate-200"
+            >
+              {t('list.all_closed')}
+            </button>
+            <button
+              onClick={() => {
+                const ids = filtered
+                  .filter(s => {
+                    const tk = tokensMap?.[s.id];
+                    return !tk || (tk.in === 0 && tk.out === 0);
+                  })
+                  .map(s => s.id);
+                setSelectedIds(new Set(ids));
+              }}
+              className="px-2 py-0.5 text-[10px] rounded border border-slate-700 text-slate-400 hover:bg-slate-800 hover:text-slate-200"
+            >
+              0 tokens
+            </button>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] text-rose-300 font-medium flex-1">
+              {selectedIds.size} {t('list.selected')}
+            </span>
+            <button
+              disabled={selectedIds.size === 0 || deleting}
+              onClick={async () => {
+                const count = selectedIds.size;
+                if (!confirm(`${t('list.confirm_batch_delete')} ${count} ${t('list.sessions_unit')}?`)) return;
+                setDeleting(true);
+                try {
+                  await onBatchDelete?.([...selectedIds]);
+                  setSelectedIds(new Set());
+                  setSelectMode(false);
+                } finally {
+                  setDeleting(false);
+                }
+              }}
+              className={`px-3 py-1 text-[11px] rounded font-medium transition-colors ${
+                selectedIds.size > 0 && !deleting
+                  ? 'bg-rose-600 text-white hover:bg-rose-500'
+                  : 'bg-slate-800 text-slate-600 cursor-not-allowed'
+              }`}
+            >
+              {deleting ? t('list.deleting') : `🗑 ${t('list.delete_selected')} (${selectedIds.size})`}
+            </button>
+          </div>
         </div>
       )}
       <div ref={scrollRef} className="flex-1 overflow-y-auto py-2">

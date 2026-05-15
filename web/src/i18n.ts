@@ -274,6 +274,8 @@ const dict: Record<string, { en: string; zh: string }> = {
   'list.confirm_batch_delete': { en: 'Permanently delete', zh: '确认永久删除' },
   'list.sessions_unit': { en: 'sessions', zh: '个会话' },
   'list.deleting': { en: 'Deleting…', zh: '删除中…' },
+  'list.days_ago': { en: 'd ago', zh: '天前' },
+  'list.all_closed': { en: 'All closed', zh: '所有已结束' },
 
   // SessionDetail
   'detail.select_left': { en: 'Select a session from the left', zh: '从左侧选择一个会话' },
