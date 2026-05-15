@@ -64,3 +64,41 @@ impl DetailCache {
         .await
     }
 }
+
+/// Generic response-level cache for expensive endpoint responses.
+/// Stores serialized JSON bytes with a configurable TTL.
+#[derive(Clone)]
+pub struct ResponseCache {
+    inner: Arc<RwLock<HashMap<String, (Instant, serde_json::Value)>>>,
+    ttl: Duration,
+}
+
+impl ResponseCache {
+    pub fn new(ttl: Duration) -> Self {
+        Self {
+            inner: Arc::new(RwLock::new(HashMap::new())),
+            ttl,
+        }
+    }
+
+    pub async fn get(&self, key: &str) -> Option<serde_json::Value> {
+        let guard = self.inner.read().await;
+        if let Some((at, val)) = guard.get(key) {
+            if at.elapsed() < self.ttl {
+                return Some(val.clone());
+            }
+        }
+        None
+    }
+
+    pub async fn set(&self, key: String, val: serde_json::Value) {
+        self.inner
+            .write()
+            .await
+            .insert(key, (Instant::now(), val));
+    }
+
+    pub async fn invalidate(&self, key: &str) {
+        self.inner.write().await.remove(key);
+    }
+}

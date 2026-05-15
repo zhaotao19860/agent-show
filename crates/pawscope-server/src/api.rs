@@ -36,9 +36,9 @@ pub async fn list_sessions(
 }
 
 pub async fn get_detail(Path(id): Path<String>, State(s): State<AppState>) -> impl IntoResponse {
-    match s.adapter.get_detail(&id).await {
-        Ok(d) => Json(d).into_response(),
-        Err(e) => (StatusCode::NOT_FOUND, e.to_string()).into_response(),
+    match s.detail_cache.get_or_fetch(&s.adapter, &id).await {
+        Some(d) => Json(d.as_ref().clone()).into_response(),
+        None => (StatusCode::NOT_FOUND, "session not found").into_response(),
     }
 }
 
@@ -72,44 +72,53 @@ pub async fn sessions_tokens(State(s): State<AppState>) -> impl IntoResponse {
         Ok(v) => v,
         Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
     };
-    let tasks: Vec<_> = sessions
-        .iter()
-        .map(|m| {
-            let adapter = s.adapter.clone();
-            let id = m.id.clone();
-            async move { (id.clone(), adapter.get_detail(&id).await.ok()) }
-        })
-        .collect();
-    let results = futures::future::join_all(tasks).await;
+    let pairs = s.detail_cache.fan_out(&s.adapter, &sessions).await;
     let mut map = serde_json::Map::new();
-    for (id, d) in results {
-        if let Some(d) = d {
-            if d.tokens_in > 0 || d.tokens_out > 0 {
-                map.insert(
-                    id,
-                    serde_json::json!({"in": d.tokens_in, "out": d.tokens_out}),
-                );
-            }
+    for (meta, d) in pairs {
+        if d.tokens_in > 0 || d.tokens_out > 0 {
+            map.insert(
+                meta.id,
+                serde_json::json!({"in": d.tokens_in, "out": d.tokens_out}),
+            );
         }
     }
     Json(serde_json::Value::Object(map)).into_response()
 }
 
 pub async fn activity(State(s): State<AppState>) -> impl IntoResponse {
+    if let Some(cached) = s.response_cache.get("activity").await {
+        return Json(cached).into_response();
+    }
     match s.adapter.activity_hourly(24).await {
-        Ok(b) => Json(serde_json::json!({ "hours": 24, "buckets": b })).into_response(),
+        Ok(b) => {
+            let val = serde_json::json!({ "hours": 24, "buckets": b });
+            s.response_cache.set("activity".to_string(), val.clone()).await;
+            Json(val).into_response()
+        }
         Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
     }
 }
 
 pub async fn activity_grid(State(s): State<AppState>) -> impl IntoResponse {
+    if let Some(cached) = s.response_cache.get("activity_grid").await {
+        return Json(cached).into_response();
+    }
     match s.adapter.activity_grid_7x24().await {
-        Ok(g) => Json(serde_json::json!({ "rows": 7, "cols": 24, "grid": g })).into_response(),
+        Ok(g) => {
+            let val = serde_json::json!({ "rows": 7, "cols": 24, "grid": g });
+            s.response_cache.set("activity_grid".to_string(), val.clone()).await;
+            Json(val).into_response()
+        }
         Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
     }
 }
 
 pub async fn overview(State(s): State<AppState>) -> impl IntoResponse {
+    // Return cached response if available (15s TTL)
+    if let Some(cached) = s.response_cache.get("overview").await {
+        return Json(cached).into_response();
+    }
+
     let sessions = match s.adapter.list_sessions().await {
         Ok(v) => v,
         Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
@@ -215,89 +224,99 @@ pub async fn overview(State(s): State<AppState>) -> impl IntoResponse {
     let mut tokens_daily30_out: [u64; 30] = [0; 30];
     let today_utc = chrono::Utc::now().date_naive();
 
-    let mut handles = Vec::with_capacity(sessions.len());
-    for sess in &sessions {
-        let adapter = s.adapter.clone();
-        let id = sess.id.clone();
-        handles.push(tokio::spawn(async move {
-            let detail = adapter.get_detail(&id).await;
-            let activity = adapter.session_activity_hourly(&id, 336).await.ok();
-            (id, detail, activity)
-        }));
-    }
-    for h in handles {
-        if let Ok((sid, Ok(d), activity)) = h.await {
-            total_turns += d.turns as u64;
-            total_user_msgs += d.user_messages as u64;
-            total_assistant_msgs += d.assistant_messages as u64;
-            total_tokens_in += d.tokens_in;
-            total_tokens_out += d.tokens_out;
-            if let Some(agent_key) = sess_agent_key.get(&sid) {
-                let entry = tokens_by_agent.entry(agent_key.clone()).or_insert((0, 0));
-                entry.0 += d.tokens_in;
-                entry.1 += d.tokens_out;
+    let pairs = s.detail_cache.fan_out(&s.adapter, &sessions).await;
+    // Also fan out activity (only need 336h = 14 days, cheap to fetch in parallel)
+    let activity_tasks: Vec<_> = sessions
+        .iter()
+        .map(|sess| {
+            let adapter = s.adapter.clone();
+            let id = sess.id.clone();
+            async move {
+                let result = adapter.session_activity_hourly(&id, 336).await.ok();
+                (id, result)
             }
-            // Bucket session token totals into the 7-day window by last_event_at.
-            if d.tokens_in > 0 || d.tokens_out > 0 {
-                if let Some(t) = sess_last_event.get(&sid) {
-                    let days_ago = (today_utc - t.date_naive()).num_days();
-                    if (0..7).contains(&days_ago) {
-                        let idx = (6 - days_ago) as usize;
-                        tokens_daily7_in[idx] += d.tokens_in;
-                        tokens_daily7_out[idx] += d.tokens_out;
-                    }
-                    if (0..30).contains(&days_ago) {
-                        let idx = (29 - days_ago) as usize;
-                        tokens_daily30_in[idx] += d.tokens_in;
-                        tokens_daily30_out[idx] += d.tokens_out;
-                    }
+        })
+        .collect();
+    let activity_results: HashMap<String, Option<Vec<u64>>> =
+        futures::future::join_all(activity_tasks)
+            .await
+            .into_iter()
+            .collect();
+
+    for (meta, d) in &pairs {
+        let sid = &meta.id;
+        let d = d.as_ref();
+        let activity = activity_results.get(sid).and_then(|a| a.as_ref());
+        total_turns += d.turns as u64;
+        total_user_msgs += d.user_messages as u64;
+        total_assistant_msgs += d.assistant_messages as u64;
+        total_tokens_in += d.tokens_in;
+        total_tokens_out += d.tokens_out;
+        if let Some(agent_key) = sess_agent_key.get(sid) {
+            let entry = tokens_by_agent.entry(agent_key.clone()).or_insert((0, 0));
+            entry.0 += d.tokens_in;
+            entry.1 += d.tokens_out;
+        }
+        // Bucket session token totals into the 7-day window by last_event_at.
+        if d.tokens_in > 0 || d.tokens_out > 0 {
+            if let Some(t) = sess_last_event.get(sid) {
+                let days_ago = (today_utc - t.date_naive()).num_days();
+                if (0..7).contains(&days_ago) {
+                    let idx = (6 - days_ago) as usize;
+                    tokens_daily7_in[idx] += d.tokens_in;
+                    tokens_daily7_out[idx] += d.tokens_out;
+                }
+                if (0..30).contains(&days_ago) {
+                    let idx = (29 - days_ago) as usize;
+                    tokens_daily30_in[idx] += d.tokens_in;
+                    tokens_daily30_out[idx] += d.tokens_out;
                 }
             }
-            let session_tools: u64 = d.tools_used.values().map(|&v| v as u64).sum();
-            if let Some(key) = sess_realm_key.get(&sid) {
-                if let Some(r) = realms.get_mut(key) {
-                    r.turns += d.turns as u64;
-                    r.tool_calls += session_tools;
-                    if let Some(buckets) = &activity {
-                        if buckets.len() >= 336 {
-                            let prev: u64 = buckets[0..168].iter().sum();
-                            let this: u64 = buckets[168..336].iter().sum();
-                            r.turns_this_week += this;
-                            r.turns_prev_week += prev;
-                            for d in 0..14 {
-                                let mut s = 0u64;
-                                for h in 0..24 {
-                                    s += buckets[d * 24 + h];
-                                }
-                                r.daily14[d] += s;
+        }
+        let session_tools: u64 = d.tools_used.values().map(|&v| v as u64).sum();
+        if let Some(key) = sess_realm_key.get(sid) {
+            if let Some(r) = realms.get_mut(key) {
+                r.turns += d.turns as u64;
+                r.tool_calls += session_tools;
+                if let Some(buckets) = &activity {
+                    if buckets.len() >= 336 {
+                        let prev: u64 = buckets[0..168].iter().sum();
+                        let this: u64 = buckets[168..336].iter().sum();
+                        r.turns_this_week += this;
+                        r.turns_prev_week += prev;
+                        for day in 0..14 {
+                            let mut s = 0u64;
+                            for h in 0..24 {
+                                s += buckets[day * 24 + h];
                             }
+                            r.daily14[day] += s;
                         }
                     }
                 }
             }
-            for (k, v) in d.tools_used {
-                *tools_used.entry(k).or_default() += v as u64;
+        }
+        for (k, v) in &d.tools_used {
+            *tools_used.entry(k.clone()).or_default() += *v as u64;
+        }
+        for k in &d.skills_invoked {
+            *skills_invoked.entry(k.clone()).or_default() += 1;
+        }
+        for sa in &d.subagents {
+            subagent_count += 1;
+            if sa.active {
+                subagent_active += 1;
             }
-            for k in d.skills_invoked {
-                *skills_invoked.entry(k).or_default() += 1;
-            }
-            for sa in d.subagents {
-                subagent_count += 1;
-                if sa.active {
-                    subagent_active += 1;
-                }
-                subagents.push(serde_json::json!({
-                    "session_id": sid,
-                    "id": sa.id,
-                    "turns": sa.turns,
-                    "tool_calls": sa.tool_calls,
-                    "agent_type": sa.agent_type,
-                    "description": sa.description,
-                    "started_at": sa.started_at,
-                    "ended_at": sa.ended_at,
-                    "active": sa.active,
-                }));
-            }
+            subagents.push(serde_json::json!({
+                "session_id": sid,
+                "id": sa.id,
+                "turns": sa.turns,
+                "tool_calls": sa.tool_calls,
+                "agent_type": sa.agent_type,
+                "description": sa.description,
+                "started_at": sa.started_at,
+                "ended_at": sa.ended_at,
+                "active": sa.active,
+            }));
         }
     }
 
@@ -344,7 +363,7 @@ pub async fn overview(State(s): State<AppState>) -> impl IntoResponse {
         .collect::<serde_json::Map<_, _>>()
         .into();
 
-    Json(serde_json::json!({
+    let result = serde_json::json!({
         "total_sessions": total,
         "active_sessions": active,
         "by_agent": by_agent,
@@ -365,8 +384,9 @@ pub async fn overview(State(s): State<AppState>) -> impl IntoResponse {
         "subagent_active": subagent_active,
         "top_subagents": top_subagents,
         "top_realms": top_realms,
-    }))
-    .into_response()
+    });
+    s.response_cache.set("overview".to_string(), result.clone()).await;
+    Json(result).into_response()
 }
 
 #[derive(serde::Deserialize)]
@@ -416,51 +436,57 @@ pub async fn realm_detail(
     let mut subagents: Vec<serde_json::Value> = Vec::new();
     let mut session_summaries: Vec<serde_json::Value> = Vec::new();
 
-    let mut handles = Vec::new();
-    for sess in &in_realm {
-        let adapter = s.adapter.clone();
-        let id = sess.id.clone();
-        handles.push(tokio::spawn(async move {
-            let detail = adapter.get_detail(&id).await;
-            let activity = adapter.session_activity_hourly(&id, 336).await.ok();
-            (id, detail, activity)
-        }));
-    }
+    let pairs = s.detail_cache.fan_out(&s.adapter, &in_realm).await;
+    let activity_tasks: Vec<_> = in_realm
+        .iter()
+        .map(|sess| {
+            let adapter = s.adapter.clone();
+            let id = sess.id.clone();
+            async move {
+                let result = adapter.session_activity_hourly(&id, 336).await.ok();
+                (id, result)
+            }
+        })
+        .collect();
+    let activity_results: HashMap<String, Option<Vec<u64>>> =
+        futures::future::join_all(activity_tasks)
+            .await
+            .into_iter()
+            .collect();
+
     let mut detail_map: BTreeMap<String, pawscope_core::SessionDetail> = BTreeMap::new();
     let mut activity_map: BTreeMap<String, Vec<u64>> = BTreeMap::new();
-    for h in handles {
-        if let Ok((sid, Ok(d), act)) = h.await {
-            if let Some(buckets) = &act {
-                if buckets.len() == 336 {
-                    for (i, v) in buckets.iter().enumerate() {
-                        activity_336[i] += v;
-                    }
+    for (meta, d) in &pairs {
+        let sid = &meta.id;
+        let d_ref = d.as_ref();
+        if let Some(Some(buckets)) = activity_results.get(sid) {
+            if buckets.len() == 336 {
+                for (i, v) in buckets.iter().enumerate() {
+                    activity_336[i] += v;
                 }
             }
-            total_turns += d.turns as u64;
-            for (k, v) in &d.tools_used {
-                *tools_used.entry(k.clone()).or_default() += *v as u64;
-                total_tools += *v as u64;
-            }
-            for k in &d.skills_invoked {
-                *skills_invoked.entry(k.clone()).or_default() += 1;
-            }
-            for sa in &d.subagents {
-                subagents.push(serde_json::json!({
-                    "session_id": sid,
-                    "id": sa.id,
-                    "turns": sa.turns,
-                    "tool_calls": sa.tool_calls,
-                    "agent_type": sa.agent_type,
-                    "description": sa.description,
-                    "active": sa.active,
-                }));
-            }
-            detail_map.insert(sid.clone(), d);
-            if let Some(a) = act {
-                activity_map.insert(sid, a);
-            }
+            activity_map.insert(sid.clone(), buckets.clone());
         }
+        total_turns += d_ref.turns as u64;
+        for (k, v) in &d_ref.tools_used {
+            *tools_used.entry(k.clone()).or_default() += *v as u64;
+            total_tools += *v as u64;
+        }
+        for k in &d_ref.skills_invoked {
+            *skills_invoked.entry(k.clone()).or_default() += 1;
+        }
+        for sa in &d_ref.subagents {
+            subagents.push(serde_json::json!({
+                "session_id": sid,
+                "id": sa.id,
+                "turns": sa.turns,
+                "tool_calls": sa.tool_calls,
+                "agent_type": sa.agent_type,
+                "description": sa.description,
+                "active": sa.active,
+            }));
+        }
+        detail_map.insert(sid.clone(), d_ref.clone());
     }
 
     for sess in &in_realm {

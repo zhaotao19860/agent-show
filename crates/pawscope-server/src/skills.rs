@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
-#[derive(Serialize)]
+#[derive(Serialize, Deserialize)]
 pub struct SkillEntry {
     pub name: String,
     pub description: String,
@@ -17,7 +17,7 @@ pub struct SkillEntry {
     pub invocations: u64,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Deserialize)]
 pub struct SkillsResponse {
     pub skills: Vec<SkillEntry>,
     pub total: usize,
@@ -25,6 +25,13 @@ pub struct SkillsResponse {
 }
 
 pub async fn list_skills(State(state): State<AppState>) -> Json<SkillsResponse> {
+    // Check response cache first (skills scan is expensive filesystem I/O)
+    if let Some(cached) = state.response_cache.get("skills").await {
+        if let Ok(resp) = serde_json::from_value::<SkillsResponse>(cached) {
+            return Json(resp);
+        }
+    }
+
     // Collect distinct session cwds to discover project-local skills
     let mut project_skill_roots: Vec<PathBuf> = Vec::new();
     let mut seen_roots: std::collections::HashSet<PathBuf> = std::collections::HashSet::new();
@@ -86,11 +93,16 @@ pub async fn list_skills(State(state): State<AppState>) -> Json<SkillsResponse> 
     });
 
     let total = skills.len();
-    Json(SkillsResponse {
+    let resp = SkillsResponse {
         skills,
         total,
         by_source,
-    })
+    };
+    // Cache the result for subsequent requests
+    if let Ok(val) = serde_json::to_value(&resp) {
+        state.response_cache.set("skills".to_string(), val).await;
+    }
+    Json(resp)
 }
 
 fn scan_skills_recursive(root: &Path, source: &str, max_depth: usize) -> Vec<SkillEntry> {

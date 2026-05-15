@@ -450,6 +450,18 @@ pub fn parse_incremental(path: &Path, state: &mut ParseState) -> anyhow::Result<
     // v0.8: rebuild the conversation-level token rollup at every parse cycle.
     pawscope_core::recompute_token_summary(&mut state.conversation);
 
+    // v1.11: fall back to conversation-level token summary when shutdown
+    // events lack modelMetrics (common for quick restarts / compaction
+    // cycles that emit session.shutdown with empty metrics).
+    if state.detail.tokens_in == 0 && state.detail.tokens_out == 0 {
+        if let Some(ts) = &state.conversation.tokens {
+            if ts.total_input_tokens > 0 || ts.total_output_tokens > 0 {
+                state.detail.tokens_in = ts.total_input_tokens;
+                state.detail.tokens_out = ts.total_output_tokens;
+            }
+        }
+    }
+
     // Mirror the conversation log onto SessionDetail so anyone holding only
     // `state.detail` (e.g. cache layer) sees the latest. We Clone because
     // ConversationLog is already snapshot-friendly.

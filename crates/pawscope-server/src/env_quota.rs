@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 // GET /api/env — local environment info
 // ---------------------------------------------------------------------------
 
-#[derive(Serialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct EnvInfo {
     pub ip: String,
     pub country: String,
@@ -16,7 +16,14 @@ pub struct EnvInfo {
     pub hostname: String,
 }
 
-pub async fn get_env() -> impl IntoResponse {
+pub async fn get_env(State(state): State<AppState>) -> impl IntoResponse {
+    // Check response cache first (ipinfo.io call is ~1s)
+    if let Some(cached) = state.response_cache.get("env").await {
+        if let Ok(info) = serde_json::from_value::<EnvInfo>(cached) {
+            return Json(info).into_response();
+        }
+    }
+
     let proxy = std::env::var("https_proxy")
         .or_else(|_| std::env::var("HTTPS_PROXY"))
         .or_else(|_| std::env::var("http_proxy"))
@@ -35,14 +42,18 @@ pub async fn get_env() -> impl IntoResponse {
         Err(_) => ("unknown".into(), "".into(), "".into()),
     };
 
-    Json(EnvInfo {
+    let env_info = EnvInfo {
         ip,
         country,
         city,
         proxy,
         os,
         hostname,
-    })
+    };
+    if let Ok(val) = serde_json::to_value(&env_info) {
+        state.response_cache.set("env".to_string(), val).await;
+    }
+    Json(env_info).into_response()
 }
 
 #[derive(Deserialize)]

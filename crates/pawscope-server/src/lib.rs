@@ -28,6 +28,7 @@ pub struct AppState {
     pub adapter: Arc<dyn AgentAdapter>,
     pub events: broadcast::Sender<pawscope_core::SessionEvent>,
     pub detail_cache: cache::DetailCache,
+    pub response_cache: cache::ResponseCache,
     pub labels: labels::LabelStore,
     pub hidden: hidden::HiddenStore,
     pub my_skills: my_skills::MySkillsStore,
@@ -44,6 +45,7 @@ pub fn build_app(adapter: Arc<dyn AgentAdapter>) -> (Router, AppState) {
         adapter,
         events: tx,
         detail_cache: cache::DetailCache::new(),
+        response_cache: cache::ResponseCache::new(std::time::Duration::from_secs(30)),
         labels,
         hidden,
         my_skills,
@@ -137,6 +139,7 @@ pub fn spawn_watcher(state: AppState) {
     let adapter = state.adapter.clone();
     let tx = state.events.clone();
     let cache = state.detail_cache.clone();
+    let rcache = state.response_cache.clone();
     tokio::spawn(async move {
         let (m_tx, mut m_rx) = tokio::sync::mpsc::channel(256);
         tokio::spawn(async move {
@@ -147,9 +150,16 @@ pub fn spawn_watcher(state: AppState) {
                 pawscope_core::SessionEvent::DetailUpdated { session_id, .. }
                 | pawscope_core::SessionEvent::Closed { session_id } => {
                     cache.invalidate(session_id).await;
+                    // Invalidate aggregate caches so next request rebuilds
+                    rcache.invalidate("overview").await;
+                    rcache.invalidate("activity").await;
+                    rcache.invalidate("activity_grid").await;
                 }
                 pawscope_core::SessionEvent::ConversationUpdated { .. } => {}
-                pawscope_core::SessionEvent::SessionListChanged => {}
+                pawscope_core::SessionEvent::SessionListChanged => {
+                    rcache.invalidate("overview").await;
+                    rcache.invalidate("skills").await;
+                }
             }
             let _ = tx.send(ev);
         }
