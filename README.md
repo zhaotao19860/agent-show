@@ -146,56 +146,19 @@ Hide, delete (move to trash), rename, star, tag sessions. Compare 2–5 sessions
 
 ## Install
 
-### One-line install (macOS · Linux)
+Agent Show is installed from source.
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/benjamin7007/Agent Show/master/install.sh | bash
+git clone https://github.com/benjamin7007/agent-show.git
+cd agent-show
+cargo install --path .
 ```
 
-Detects your platform, downloads the latest release, verifies SHA-256, drops the binary into `~/.local/bin` (or `/usr/local/bin` if writable). Pin a version with `AGENT_SHOW_VERSION=v1.0.0`, change the prefix with `AGENT_SHOW_PREFIX=/opt/bin`.
-
-### One-line install (Windows PowerShell)
-
-```powershell
-irm https://raw.githubusercontent.com/benjamin7007/Agent Show/master/install.ps1 | iex
-```
-
-Downloads the latest release, verifies SHA-256, installs to `%LOCALAPPDATA%\agent-show`, and adds to user PATH. Pin a version with `$env:AGENT_SHOW_VERSION="v1.9.1"`.
-
-To remove it later:
+For a local release build without installing:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/benjamin7007/Agent Show/master/uninstall.sh | bash
-```
-
-### Pre-built binaries
-
-Grab the latest from [Releases](https://github.com/benjamin7007/Agent Show/releases/latest):
-
-| Platform | Asset |
-|---|---|
-| macOS · Apple Silicon | `agent-show-aarch64-apple-darwin.tar.gz` |
-| macOS · Intel | `agent-show-x86_64-apple-darwin.tar.gz` |
-| Linux · x86_64 | `agent-show-x86_64-unknown-linux-gnu.tar.gz` |
-| Linux · aarch64 | `agent-show-aarch64-unknown-linux-gnu.tar.gz` |
-| Windows · x86_64 | `agent-show-x86_64-pc-windows-msvc.zip` |
-
-```bash
-# macOS / Linux example
-curl -fsSL -o agent-show.tar.gz \
-  https://github.com/benjamin7007/Agent Show/releases/latest/download/agent-show-aarch64-apple-darwin.tar.gz
-tar -xzf agent-show.tar.gz
-./agent-show-aarch64-apple-darwin/agent-show serve
-```
-
-Each archive ships with a matching `.sha256`.
-
-### From source
-
-```bash
-git clone https://github.com/benjamin7007/Agent Show.git
-cd Agent Show
-cargo install --path .          # or: cargo build --release
+cargo build --release
+./target/release/agent-show serve
 ```
 
 Requires Rust 1.87+. The web bundle is built and embedded automatically.

@@ -12,7 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - Embedded web build step so `cargo install --path .` builds the bundled UI.
 
 ### Changed
-- User-facing app, binary, documentation, installer, and UI branding now use Agent Show / `agent-show`.
+- User-facing app, documentation, and UI branding now use Agent Show / `agent-show`.
 - Analytics daily trend now uses last activity time, returns a complete date range, and renders as a clearer SVG trend chart.
 
 ### Security
@@ -23,9 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [1.0.0] — Public release
 
-First public release. API stabilization, full documentation pass, signed
-binaries published for macOS (Apple Silicon + Intel), Linux (x86_64 + aarch64)
-and Windows (x86_64).
+First public release. API stabilization and full documentation pass.
 
 ### Stabilized
 - `agent-show-core` `AgentAdapter` trait — adapters can now rely on a stable
