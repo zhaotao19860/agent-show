@@ -10,6 +10,40 @@ export async function fetchOverview() {
   const r = await fetch('/api/overview');
   return r.json();
 }
+
+export interface TodayActiveItem {
+  id: string;
+  agent: string;
+  summary: string;
+  repo: string | null;
+  branch: string | null;
+  model: string | null;
+  status: string;
+  started_at: string;
+  last_event_at: string;
+  turns: number;
+  tokens_in: number;
+  tokens_out: number;
+  tools: number;
+}
+
+export interface TodayActiveResponse {
+  date: string;
+  sessions: number;
+  active_sessions: number;
+  turns: number;
+  tokens_in: number;
+  tokens_out: number;
+  tools: number;
+  by_agent: Record<string, number>;
+  items: TodayActiveItem[];
+}
+
+export async function fetchTodayActive(): Promise<TodayActiveResponse> {
+  const r = await fetch('/api/today-active');
+  if (!r.ok) throw new Error(`today active fetch ${r.status}`);
+  return r.json();
+}
 export async function fetchActivity() {
   const r = await fetch('/api/activity');
   return r.json();

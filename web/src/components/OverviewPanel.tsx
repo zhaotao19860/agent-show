@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useMemo, useState } from 'react';
-import { fetchOverview, fetchActivity, fetchActivityGrid, fetchSessions, fetchSkills, subscribeEvents, fetchEnv, fetchCopilotQuota, fetchCopilotSessions, fetchProviderUsage, type SkillEntry, type EnvInfo, type CopilotQuota, type CopilotSessions, type ProviderUsage } from '../api';
+import { fetchOverview, fetchActivity, fetchActivityGrid, fetchSessions, fetchSkills, subscribeEvents, fetchEnv, fetchCopilotQuota, fetchCopilotSessions, fetchProviderUsage, fetchTodayActive, type SkillEntry, type EnvInfo, type CopilotQuota, type CopilotSessions, type ProviderUsage, type TodayActiveResponse } from '../api';
 import { useT } from '../i18n';
 import { categorize, CATEGORY_ORDER, categoryLabel } from '../skillCategory';
 import { CategoryDonut } from './CategoryDonut';
@@ -11,7 +11,7 @@ import { estimateCostUsd, formatUsd, priceFor } from '../pricing';
 const COLLAPSE_EVENT = 'agent-show-collapse-toggle';
 
 const COLLAPSIBLE_IDS = [
-  'insights', 'today-efficiency', 'token-usage', 'cost-summary',
+  'insights', 'today-active', 'today-efficiency', 'token-usage', 'cost-summary',
   'env-quota',
   'activity-heatmap', 'week-grid', 'heartbeat', 'weekly-trend',
   'word-cloud', 'prompt-length', 'tech-stack',
@@ -1195,6 +1195,115 @@ function Stat({ label, value }: { label: string; value: string }) {
   );
 }
 
+function TodayActiveView({
+  data,
+  onOpenSession,
+}: {
+  data: TodayActiveResponse | null;
+  onOpenSession?: (id: string) => void;
+}) {
+  const { t, fmt, rel } = useT();
+
+  const stats = useMemo(() => {
+    if (!data) return null;
+    let knownCost = 0;
+    let unknownCostSessions = 0;
+    for (const item of data.items) {
+      const cost = estimateCostUsd(item.model, item.tokens_in, item.tokens_out);
+      if (cost === null && item.tokens_in + item.tokens_out > 0) unknownCostSessions += 1;
+      else if (cost !== null) knownCost += cost;
+    }
+    const agentEntries = Object.entries(data.by_agent ?? {}).sort((a, b) => b[1] - a[1]);
+    return { knownCost, unknownCostSessions, agentEntries };
+  }, [data]);
+
+  const topAgent = stats?.agentEntries[0];
+
+  return (
+    <section className="rounded-lg bg-slate-900/40 border border-emerald-900/30 overflow-hidden">
+      <header className="px-4 py-2.5 border-b border-slate-800 flex items-baseline justify-between">
+        <div>
+          <h3 className="text-xs uppercase tracking-wider text-emerald-300">🟢 {t('sec.today_active')}</h3>
+          <p className="text-[11px] text-slate-600 mt-0.5">{t('misc.today_active_scope')}</p>
+        </div>
+        <span className="text-[11px] text-slate-500 tabular-nums">
+          {data ? `${data.sessions} ${t('stat.today_sessions')}` : '…'}
+        </span>
+      </header>
+      <div className="px-4 py-4 space-y-4">
+        {!data ? (
+          <p className="text-sm text-slate-600">{t('overview.aggregating')}</p>
+        ) : data.sessions === 0 ? (
+          <p className="text-sm text-slate-600">{t('misc.no_active_today')}</p>
+        ) : (
+          <>
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+              <div className="rounded-md bg-slate-950/50 border border-slate-800/70 px-3 py-2">
+                <div className="text-[9px] uppercase tracking-wider text-slate-500">{t('stat.today_sessions')}</div>
+                <div className="text-2xl font-semibold text-slate-100 tabular-nums">{fmt(data.sessions)}</div>
+                <div className="text-[10px] text-emerald-400 mt-0.5">{data.active_sessions} {t('stat.active')}</div>
+              </div>
+              <div className="rounded-md bg-slate-950/50 border border-slate-800/70 px-3 py-2">
+                <div className="text-[9px] uppercase tracking-wider text-slate-500">{t('stat.turns')}</div>
+                <div className="text-2xl font-semibold text-cyan-300 tabular-nums">{fmt(data.turns)}</div>
+                <div className="text-[10px] text-slate-600 mt-0.5">{fmt(data.tools)} {t('stat.tool_calls')}</div>
+              </div>
+              <div className="rounded-md bg-slate-950/50 border border-slate-800/70 px-3 py-2">
+                <div className="text-[9px] uppercase tracking-wider text-slate-500">{t('stat.tokens_total')}</div>
+                <div className="text-2xl font-semibold text-violet-300 tabular-nums">{fmt(data.tokens_in + data.tokens_out)}</div>
+                <div className="text-[10px] text-slate-600 mt-0.5">↓ {fmt(data.tokens_in)} · ↑ {fmt(data.tokens_out)}</div>
+              </div>
+              <div className="rounded-md bg-slate-950/50 border border-slate-800/70 px-3 py-2">
+                <div className="text-[9px] uppercase tracking-wider text-slate-500">{t('stat.cost_est')}</div>
+                <div className="text-2xl font-semibold text-amber-300 tabular-nums">{formatUsd(stats?.knownCost ?? 0)}</div>
+                <div className="text-[10px] text-slate-600 mt-0.5">
+                  {(stats?.unknownCostSessions ?? 0) > 0 ? `${stats?.unknownCostSessions} ${t('misc.sessions_unpriced')}` : t('misc.estimated')}
+                </div>
+              </div>
+              <div className="rounded-md bg-slate-950/50 border border-slate-800/70 px-3 py-2">
+                <div className="text-[9px] uppercase tracking-wider text-slate-500">Agent</div>
+                <div className="text-2xl font-semibold text-emerald-300 tabular-nums">{topAgent ? topAgent[0] : '—'}</div>
+                <div className="text-[10px] text-slate-600 mt-0.5">{topAgent ? `${topAgent[1]} sessions` : t('misc.none')}</div>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <div className="text-[10px] uppercase tracking-wider text-slate-500">{t('misc.recent_active_sessions')}</div>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
+                {data.items.slice(0, 8).map(s => {
+                  const tokenTotal = s.tokens_in + s.tokens_out;
+                  const cost = estimateCostUsd(s.model, s.tokens_in, s.tokens_out);
+                  return (
+                    <button
+                      key={s.id}
+                      type="button"
+                      onClick={() => onOpenSession?.(s.id)}
+                      className="text-left rounded-md border border-slate-800/70 bg-slate-950/35 hover:bg-slate-800/50 transition-colors px-3 py-2"
+                    >
+                      <div className="flex items-center gap-2 text-xs">
+                        <span className={`w-2 h-2 rounded-full ${s.status === 'active' ? 'bg-emerald-400' : 'bg-slate-600'}`} />
+                        <span className="uppercase tracking-wider text-cyan-300 font-medium">{s.agent}</span>
+                        {s.model && <span className="text-slate-500 truncate">{s.model}</span>}
+                        <span className="ml-auto text-slate-600 tabular-nums">{rel(s.last_event_at)}</span>
+                      </div>
+                      <div className="mt-1 text-sm text-slate-200 truncate">{s.summary || s.id}</div>
+                      <div className="mt-1 flex items-center gap-3 text-[11px] text-slate-500 tabular-nums">
+                        <span>{t('stat.turns')}: {fmt(s.turns)}</span>
+                        <span>{t('stat.tokens_total')}: {fmt(tokenTotal)}</span>
+                        {cost !== null && <span className="text-amber-300">{formatUsd(cost)}</span>}
+                        {s.repo && <span className="truncate">{s.repo}</span>}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+    </section>
+  );
+}
+
 function TodayEfficiency({
   sessions,
   tokensMap,
@@ -1523,6 +1632,7 @@ export function OverviewPanel({
   const [copilotQuota, setCopilotQuota] = useState<CopilotQuota | null>(null);
   const [copilotSessions, setCopilotSessions] = useState<CopilotSessions | null>(null);
   const [providerUsage, setProviderUsage] = useState<ProviderUsage | null>(null);
+  const [todayActive, setTodayActive] = useState<TodayActiveResponse | null>(null);
   const [, forceTick] = useState(0);
   const [err, setErr] = useState<string | null>(null);
 
@@ -1593,6 +1703,9 @@ export function OverviewPanel({
         .catch(() => {});
       fetchProviderUsage()
         .then(d => { if (!cancelled) setProviderUsage(d); })
+        .catch(() => {});
+      fetchTodayActive()
+        .then(d => { if (!cancelled) setTodayActive(d); })
         .catch(() => {});
     };
     load();
@@ -1841,6 +1954,10 @@ export function OverviewPanel({
           heartbeat={heartbeat as any}
           t={t}
         />
+        </CollapsibleWrap>
+
+        <CollapsibleWrap id="today-active" label={`🟢 ${t('sec.today_active')}`}>
+        <TodayActiveView data={todayActive} onOpenSession={onOpenSession} />
         </CollapsibleWrap>
 
         <CollapsibleWrap id="today-efficiency" label={`⚡ ${t('sec.today_efficiency')}`}>

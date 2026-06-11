@@ -512,6 +512,7 @@ const dict: Record<string, { en: string; zh: string }> = {
   'store.error': { en: 'Failed to load store', zh: '加载商店失败' },
 
   // Today's Efficiency
+  'sec.today_active': { en: "Today's Active", zh: '今日活跃' },
   'sec.today_efficiency': { en: "Today's Efficiency", zh: '今日效率' },
   'stat.today_sessions': { en: 'Sessions', zh: '会话数' },
   'stat.avg_duration': { en: 'Avg Duration', zh: '平均时长' },
@@ -520,6 +521,11 @@ const dict: Record<string, { en: string; zh: string }> = {
   'stat.engagement_rate': { en: 'Engaged', zh: '参与率' },
   'stat.tokens_today': { en: 'Tokens Today', zh: '今日Token' },
   'misc.no_sessions_today': { en: 'No sessions today', zh: '今天还没有会话' },
+  'misc.no_active_today': { en: 'No sessions active today', zh: '今天还没有活跃会话' },
+  'misc.today_active_scope': { en: 'Sessions whose last activity is today', zh: '按最后活动时间在今天统计' },
+  'misc.session_based': { en: 'session-level', zh: '会话级统计' },
+  'misc.estimated': { en: 'estimated', zh: '已估算' },
+  'misc.recent_active_sessions': { en: 'Recent active sessions today', zh: '今日最近活跃会话' },
   'misc.longest_session_label': { en: 'longest session', zh: '最长会话' },
   'misc.minutes_short': { en: 'min', zh: '分' },
 

@@ -76,6 +76,7 @@ pub fn build_app(adapter: Arc<dyn AgentAdapter>) -> (Router, AppState) {
         )
         .route("/api/sessions/{id}/context", get(api::get_session_context))
         .route("/api/overview", get(api::overview))
+        .route("/api/today-active", get(api::today_active))
         .route("/api/activity", get(api::activity))
         .route("/api/activity/grid", get(api::activity_grid))
         .route("/api/realms", get(api::realm_detail))

@@ -113,6 +113,73 @@ pub async fn activity_grid(State(s): State<AppState>) -> impl IntoResponse {
     }
 }
 
+pub async fn today_active(State(s): State<AppState>) -> impl IntoResponse {
+    let sessions = match s.adapter.list_sessions().await {
+        Ok(v) => v,
+        Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
+    };
+    let now = chrono::Local::now();
+    let today_start = now.date_naive();
+    let mut today_sessions: Vec<_> = sessions
+        .into_iter()
+        .filter(|session| session.last_event_at.with_timezone(&chrono::Local).date_naive() >= today_start)
+        .collect();
+    today_sessions.sort_by(|a, b| b.last_event_at.cmp(&a.last_event_at));
+
+    let pairs = s.detail_cache.fan_out(&s.adapter, &today_sessions).await;
+    let mut total_turns: u64 = 0;
+    let mut total_tokens_in: u64 = 0;
+    let mut total_tokens_out: u64 = 0;
+    let mut total_tools: u64 = 0;
+    let mut active_sessions: u64 = 0;
+    let mut by_agent: HashMap<String, u64> = HashMap::new();
+    let mut items = Vec::new();
+
+    for (meta, detail) in pairs {
+        if meta.status == SessionStatus::Active {
+            active_sessions += 1;
+        }
+        let agent_key = serde_json::to_value(meta.agent)
+            .ok()
+            .and_then(|v| v.as_str().map(|x| x.to_string()))
+            .unwrap_or_else(|| format!("{:?}", meta.agent).to_lowercase());
+        *by_agent.entry(agent_key.clone()).or_default() += 1;
+        let tools: u64 = detail.tools_used.values().map(|&v| v as u64).sum();
+        total_turns += detail.turns as u64;
+        total_tokens_in += detail.tokens_in;
+        total_tokens_out += detail.tokens_out;
+        total_tools += tools;
+        items.push(serde_json::json!({
+            "id": meta.id,
+            "agent": agent_key,
+            "summary": meta.summary,
+            "repo": meta.repo,
+            "branch": meta.branch,
+            "model": meta.model,
+            "status": meta.status,
+            "started_at": meta.started_at,
+            "last_event_at": meta.last_event_at,
+            "turns": detail.turns,
+            "tokens_in": detail.tokens_in,
+            "tokens_out": detail.tokens_out,
+            "tools": tools,
+        }));
+    }
+
+    Json(serde_json::json!({
+        "date": today_start.format("%Y-%m-%d").to_string(),
+        "sessions": items.len(),
+        "active_sessions": active_sessions,
+        "turns": total_turns,
+        "tokens_in": total_tokens_in,
+        "tokens_out": total_tokens_out,
+        "tools": total_tools,
+        "by_agent": by_agent,
+        "items": items,
+    }))
+    .into_response()
+}
+
 pub async fn overview(State(s): State<AppState>) -> impl IntoResponse {
     // Return cached response if available (15s TTL)
     if let Some(cached) = s.response_cache.get("overview").await {
