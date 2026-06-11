@@ -16,6 +16,61 @@ function fmtTokens(n: number): string {
   return String(n);
 }
 
+function DailyTrendChart({ daily }: { daily: AnalyticsData['daily'] }) {
+  const width = 640;
+  const height = 180;
+  const padding = { top: 18, right: 16, bottom: 34, left: 32 };
+  const chartWidth = width - padding.left - padding.right;
+  const chartHeight = height - padding.top - padding.bottom;
+  const maxCount = Math.max(...daily.map(d => d.count), 1);
+  const hasActivity = daily.some(d => d.count > 0);
+  const points = daily.map((d, i) => {
+    const x = padding.left + (daily.length <= 1 ? chartWidth : (i / (daily.length - 1)) * chartWidth);
+    const y = padding.top + chartHeight - (d.count / maxCount) * chartHeight;
+    return { ...d, x, y };
+  });
+  const line = points.map(p => `${p.x},${p.y}`).join(' ');
+  const area = points.length > 0
+    ? `${padding.left},${padding.top + chartHeight} ${line} ${padding.left + chartWidth},${padding.top + chartHeight}`
+    : '';
+
+  return (
+    <div className="relative h-56 overflow-hidden rounded-lg border border-slate-800/70 bg-slate-950/35 px-3 py-2">
+      {!hasActivity && (
+        <div className="absolute inset-x-0 top-20 text-center text-xs text-slate-500 pointer-events-none">
+          当前筛选范围内暂无活动
+        </div>
+      )}
+      <svg viewBox={`0 0 ${width} ${height}`} className="h-full w-full" role="img" aria-label="每日趋势">
+        {[0, 0.5, 1].map(ratio => {
+          const y = padding.top + chartHeight - chartHeight * ratio;
+          return <line key={ratio} x1={padding.left} x2={padding.left + chartWidth} y1={y} y2={y} stroke="#1e293b" strokeWidth="1" />;
+        })}
+        <line x1={padding.left} x2={padding.left + chartWidth} y1={padding.top + chartHeight} y2={padding.top + chartHeight} stroke="#334155" strokeWidth="1" />
+        {hasActivity && <polygon points={area} fill="#10b981" opacity="0.14" />}
+        {hasActivity && <polyline points={line} fill="none" stroke="#34d399" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />}
+        {points.map((p, i) => {
+          const showLabel = i === 0 || i === points.length - 1 || i % Math.max(1, Math.ceil(points.length / 6)) === 0;
+          return (
+            <g key={p.date}>
+              <circle cx={p.x} cy={hasActivity ? p.y : padding.top + chartHeight} r={p.count > 0 ? 4 : 2} fill={p.count > 0 ? '#34d399' : '#475569'}>
+                <title>{`${p.date}: ${p.count} sessions`}</title>
+              </circle>
+              {showLabel && (
+                <text x={p.x} y={height - 10} textAnchor="middle" fill="#64748b" fontSize="11">
+                  {p.date.slice(5)}
+                </text>
+              )}
+            </g>
+          );
+        })}
+        <text x={padding.left - 8} y={padding.top + 4} textAnchor="end" fill="#64748b" fontSize="10">{maxCount}</text>
+        <text x={padding.left - 8} y={padding.top + chartHeight + 4} textAnchor="end" fill="#64748b" fontSize="10">0</text>
+      </svg>
+    </div>
+  );
+}
+
 function AnalyticsSkeleton() {
   return (
     <main className="flex-1 overflow-y-auto p-6 space-y-4">
@@ -58,8 +113,6 @@ export function AnalyticsPanel() {
   const engagedPct = data.completed_sessions > 0
     ? Math.round((data.engaged_sessions / data.completed_sessions) * 100)
     : 0;
-
-  const maxDaily = Math.max(...data.daily.map(d => d.count), 1);
 
   const allAgents = data.agent_stats.map(a => a.agent);
   const mostUsedAgent = data.agent_stats.reduce(
@@ -160,31 +213,11 @@ export function AnalyticsPanel() {
 
       {/* Card 3: Daily Trend */}
       <div className="bg-slate-900/40 border border-slate-800 rounded-lg p-4">
-        <h3 className="text-sm font-semibold text-slate-300 mb-3">{t('analytics.daily_trend')}</h3>
-        {data.daily.length === 0 ? (
-          <div className="text-xs text-slate-500 py-4 text-center">No data</div>
-        ) : (
-          <div className="flex items-end gap-px h-32">
-            {data.daily.map((d, i) => {
-              const h = Math.max((d.count / maxDaily) * 100, 2);
-              const showLabel = i === 0 || i === data.daily.length - 1 || i % 5 === 0;
-              return (
-                <div key={d.date} className="flex-1 flex flex-col items-center group relative">
-                  <div
-                    className="w-full rounded-t bg-emerald-400 hover:bg-emerald-300 transition-colors min-w-[3px]"
-                    style={{ height: `${h}%` }}
-                    title={`${d.date}: ${d.count} sessions`}
-                  />
-                  {showLabel && (
-                    <span className="text-[8px] text-slate-600 mt-1 whitespace-nowrap">
-                      {d.date.slice(5)}
-                    </span>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        )}
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-semibold text-slate-300">{t('analytics.daily_trend')}</h3>
+          <span className="text-[10px] text-slate-500">按最后活动时间统计</span>
+        </div>
+        <DailyTrendChart daily={data.daily} />
       </div>
 
       {/* Card 4: Agent Comparison */}

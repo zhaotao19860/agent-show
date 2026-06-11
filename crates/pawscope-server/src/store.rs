@@ -7,7 +7,7 @@ use axum::{
 };
 use regex::Regex;
 use serde::{Deserialize, Serialize};
-use std::sync::OnceLock;
+use std::{path::PathBuf, sync::OnceLock};
 use tokio::sync::RwLock;
 
 // ---------------------------------------------------------------------------
@@ -104,7 +104,7 @@ fn cache_lock() -> &'static RwLock<Option<CachedCatalog>> {
 
 fn cache_file_path() -> Option<std::path::PathBuf> {
     let home = dirs::home_dir()?;
-    let dir = home.join(".pawscope");
+    let dir = home.join(".agent-show");
     Some(dir.join("store-cache.json"))
 }
 
@@ -142,7 +142,7 @@ fn http_client() -> &'static reqwest::Client {
     static CLIENT: OnceLock<reqwest::Client> = OnceLock::new();
     CLIENT.get_or_init(|| {
         reqwest::Client::builder()
-            .user_agent("Pawscope/1.1")
+            .user_agent("AgentShow/1.1")
             .timeout(std::time::Duration::from_secs(30))
             .build()
             .unwrap()
@@ -299,10 +299,31 @@ fn skills_dir() -> Option<std::path::PathBuf> {
     Some(dirs::home_dir()?.join(".copilot").join("skills"))
 }
 
-fn project_skills_dir(project_path: &str) -> std::path::PathBuf {
-    std::path::PathBuf::from(project_path)
-        .join(".github")
-        .join("skills")
+async fn resolve_project_root(state: &AppState, project_path: &str) -> Result<PathBuf, String> {
+    let requested = std::fs::canonicalize(project_path)
+        .map_err(|_| "project_path does not exist or is not accessible".to_string())?;
+    if !requested.is_dir() {
+        return Err("project_path is not a directory".to_string());
+    }
+
+    let sessions = state
+        .adapter
+        .list_sessions()
+        .await
+        .map_err(|_| "cannot validate project_path against known projects".to_string())?;
+    let allowed = sessions.iter().any(|session| {
+        std::fs::canonicalize(&session.cwd)
+            .map(|cwd| cwd == requested)
+            .unwrap_or(false)
+    });
+    if !allowed {
+        return Err("project_path must match a known project from local sessions".to_string());
+    }
+    Ok(requested)
+}
+
+fn project_skills_dir(project_root: PathBuf) -> std::path::PathBuf {
+    project_root.join(".github").join("skills")
 }
 
 fn is_installed(name: &str) -> bool {
@@ -313,10 +334,10 @@ fn is_installed(name: &str) -> bool {
 
 /// Check if a skill is installed at project level
 fn is_installed_project(name: &str, project_path: &str) -> bool {
-    project_skills_dir(project_path)
-        .join(name)
-        .join("SKILL.md")
-        .exists()
+    std::fs::canonicalize(project_path)
+        .map(project_skills_dir)
+        .map(|dir| dir.join(name).join("SKILL.md").exists())
+        .unwrap_or(false)
 }
 
 /// Returns "global", "project", or "none"
@@ -335,6 +356,17 @@ fn install_scope(name: &str, project_path: Option<&str>) -> &'static str {
 fn validate_skill_name(name: &str) -> bool {
     let re = Regex::new(r"^[a-z0-9-]+$").unwrap();
     re.is_match(name) && !name.contains("..")
+}
+
+fn validate_store_filename(name: &str) -> bool {
+    !name.is_empty()
+        && name != "."
+        && name != ".."
+        && !name.contains('/')
+        && !name.contains('\\')
+        && name.chars().all(|c| {
+            c.is_ascii_alphanumeric() || matches!(c, '.' | '-' | '_' )
+        })
 }
 
 fn build_catalog_response(
@@ -569,7 +601,7 @@ pub async fn store_skill_detail(
 
 /// POST /api/store/install
 pub async fn store_install(
-    State(_s): State<AppState>,
+    State(s): State<AppState>,
     Json(req): Json<InstallRequest>,
 ) -> impl IntoResponse {
     if !validate_skill_name(&req.name) {
@@ -579,7 +611,10 @@ pub async fn store_install(
     // Resolve target directory based on scope
     let skill_dir = if req.scope == "project" {
         match &req.project_path {
-            Some(pp) if !pp.is_empty() => project_skills_dir(pp).join(&req.name),
+            Some(pp) if !pp.is_empty() => match resolve_project_root(&s, pp).await {
+                Ok(root) => project_skills_dir(root).join(&req.name),
+                Err(e) => return (StatusCode::BAD_REQUEST, e).into_response(),
+            },
             _ => {
                 return (
                     StatusCode::BAD_REQUEST,
@@ -616,9 +651,12 @@ pub async fn store_install(
             let arr: Vec<serde_json::Value> = r.json().await.unwrap_or_default();
             arr.iter()
                 .filter_map(|v| {
-                    let name = v.get("name")?.as_str()?.to_string();
+                    let name = v.get("name")?.as_str()?;
+                    if !validate_store_filename(name) {
+                        return None;
+                    }
                     let download = v.get("download_url")?.as_str()?.to_string();
-                    Some((name, download))
+                    Some((name.to_string(), download))
                 })
                 .collect()
         }
@@ -679,7 +717,7 @@ pub async fn store_install(
 
 /// POST /api/store/uninstall
 pub async fn store_uninstall(
-    State(_s): State<AppState>,
+    State(s): State<AppState>,
     Json(req): Json<InstallRequest>,
 ) -> impl IntoResponse {
     if !validate_skill_name(&req.name) {
@@ -688,7 +726,10 @@ pub async fn store_uninstall(
 
     let skill_dir = if req.scope == "project" {
         match &req.project_path {
-            Some(pp) if !pp.is_empty() => project_skills_dir(pp).join(&req.name),
+            Some(pp) if !pp.is_empty() => match resolve_project_root(&s, pp).await {
+                Ok(root) => project_skills_dir(root).join(&req.name),
+                Err(e) => return (StatusCode::BAD_REQUEST, e).into_response(),
+            },
             _ => {
                 return (
                     StatusCode::BAD_REQUEST,

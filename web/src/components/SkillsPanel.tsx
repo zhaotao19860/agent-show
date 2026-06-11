@@ -10,6 +10,9 @@ const SOURCE_LABELS: Record<string, string> = {
   'copilot-superpowers': 'Copilot · superpowers',
   'claude-skills': 'Claude · skills',
   'agents-skills': 'Agents · skills',
+  'codex-skills': 'Codex · skills',
+  'comate-skills': 'Comate · skills',
+  'comate-system-skills': 'Comate · system',
   'project-skills': 'Project · .github/skills',
 };
 
@@ -17,6 +20,9 @@ const SOURCE_COLORS: Record<string, string> = {
   'copilot-superpowers': '#34d399',
   'claude-skills': '#a78bfa',
   'agents-skills': '#f59e0b',
+  'codex-skills': '#10b981',
+  'comate-skills': '#38bdf8',
+  'comate-system-skills': '#06b6d4',
   'project-skills': '#22d3ee',
 };
 

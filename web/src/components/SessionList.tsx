@@ -290,7 +290,7 @@ export function SessionList({ items, onSelect, selected, realmFilter, onClearRea
             role="button"
             onClick={(e) => {
               e.stopPropagation();
-              if (confirm('Delete this session? Data will be moved to ~/.pawscope/trash/')) {
+              if (confirm('Delete this session? Data will be moved to ~/.agent-show/trash/')) {
                 onDelete?.(s.id);
               }
             }}

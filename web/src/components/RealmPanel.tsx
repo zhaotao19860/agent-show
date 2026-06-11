@@ -6,6 +6,7 @@ const AGENT_COLORS: Record<string, string> = {
   copilot: '#34d399',
   claude: '#a78bfa',
   codex: '#f59e0b',
+  comate: '#38bdf8',
 };
 
 type RealmSession = {

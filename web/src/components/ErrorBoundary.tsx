@@ -51,7 +51,7 @@ export class ErrorBoundary extends Component<Props, State> {
           {err.message || String(err)}
         </p>
         <p className="mt-2 text-[11px] text-rose-300/60">
-          Open the browser console for the full stack trace. The rest of Pawscope is still usable.
+          Open the browser console for the full stack trace. The rest of Agent Show is still usable.
         </p>
       </div>
     );

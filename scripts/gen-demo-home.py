@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate a synthetic demo HOME for Pawscope screenshot capture.
+"""Generate a synthetic demo HOME for Agent Show screenshot capture.
 
 Produces ~/.copilot/session-state with 6 fake sessions whose names, repos,
 prompts, and tool calls are all fictional. No real personal data.
@@ -14,7 +14,7 @@ from pathlib import Path
 
 random.seed(42)
 
-DEMO_HOME = Path(sys.argv[1] if len(sys.argv) > 1 else "/tmp/pawscope-demo-home")
+DEMO_HOME = Path(sys.argv[1] if len(sys.argv) > 1 else "/tmp/agent-show-demo-home")
 
 SESSIONS = [
     dict(

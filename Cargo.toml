@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["crates/pawscope-core", "crates/pawscope-copilot", "crates/pawscope-claude", "crates/pawscope-codex", "crates/pawscope-opencode", "crates/pawscope-gemini", "crates/pawscope-aider", "crates/pawscope-server"]
+members = ["crates/pawscope-core", "crates/pawscope-copilot", "crates/pawscope-claude", "crates/pawscope-codex", "crates/pawscope-opencode", "crates/pawscope-gemini", "crates/pawscope-aider", "crates/pawscope-comate", "crates/pawscope-server"]
 
 [workspace.package]
 version = "1.11.0"
@@ -19,13 +19,13 @@ tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 
 [package]
-name = "pawscope"
+name = "agent-show"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
 
 [[bin]]
-name = "pawscope"
+name = "agent-show"
 path = "src/main.rs"
 
 [dependencies]
@@ -36,6 +36,7 @@ pawscope-codex = { path = "crates/pawscope-codex" }
 pawscope-opencode = { path = "crates/pawscope-opencode" }
 pawscope-gemini = { path = "crates/pawscope-gemini" }
 pawscope-aider = { path = "crates/pawscope-aider" }
+pawscope-comate = { path = "crates/pawscope-comate" }
 pawscope-server = { path = "crates/pawscope-server" }
 axum = { version = "0.8", features = ["ws"] }
 clap = { version = "4", features = ["derive"] }

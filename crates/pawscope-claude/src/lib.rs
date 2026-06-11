@@ -769,7 +769,7 @@ impl AgentAdapter for ClaudeAdapter {
             .ok_or_else(|| CoreError::Other("no filename".into()))?;
         let trash = dirs::home_dir()
             .unwrap_or_else(|| PathBuf::from("."))
-            .join(".pawscope/trash/claude")
+            .join(".agent-show/trash/claude")
             .join(filename);
         if let Some(parent) = trash.parent() {
             tokio::fs::create_dir_all(parent).await?;
@@ -784,7 +784,7 @@ impl AgentAdapter for ClaudeAdapter {
             if sd.is_dir() {
                 let trash_sub = dirs::home_dir()
                     .unwrap_or_else(|| PathBuf::from("."))
-                    .join(".pawscope/trash/claude")
+                    .join(".agent-show/trash/claude")
                     .join(session_id)
                     .join("subagents");
                 tokio::fs::create_dir_all(&trash_sub).await?;

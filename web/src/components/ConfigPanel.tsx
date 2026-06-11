@@ -10,6 +10,7 @@ const AGENT_COLORS: Record<string, string> = {
   opencode: '#22d3ee',
   gemini: '#60a5fa',
   aider: '#fb7185',
+  comate: '#38bdf8',
 };
 
 const AGENT_ICONS: Record<string, string> = {
@@ -19,6 +20,7 @@ const AGENT_ICONS: Record<string, string> = {
   opencode: '⊙',
   gemini: '◆',
   aider: '▣',
+  comate: '✺',
 };
 
 const AGENT_LABELS: Record<string, string> = {
@@ -28,6 +30,7 @@ const AGENT_LABELS: Record<string, string> = {
   opencode: 'OpenCode',
   gemini: 'Gemini',
   aider: 'Aider',
+  comate: 'Comate',
 };
 
 function formatTokens(n: number): string {

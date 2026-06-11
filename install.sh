@@ -1,16 +1,16 @@
 #!/usr/bin/env bash
-# Pawscope one-line installer.
+# Agent Show one-line installer.
 #
 # Usage:
-#   curl -fsSL https://raw.githubusercontent.com/benjamin7007/Pawscope/master/install.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/benjamin7007/Agent Show/master/install.sh | bash
 #
 # Optional environment variables:
-#   PAWSCOPE_VERSION   pin a specific tag (e.g. v1.0.0). Default: latest.
-#   PAWSCOPE_PREFIX    install dir. Default: $HOME/.local/bin (fallback /usr/local/bin).
+#   AGENT_SHOW_VERSION   pin a specific tag (e.g. v1.0.0). Default: latest.
+#   AGENT_SHOW_PREFIX    install dir. Default: $HOME/.local/bin (fallback /usr/local/bin).
 set -euo pipefail
 
-REPO="benjamin7007/Pawscope"
-VERSION="${PAWSCOPE_VERSION:-latest}"
+REPO="benjamin7007/Agent Show"
+VERSION="${AGENT_SHOW_VERSION:-latest}"
 
 err() { printf '\033[31merror:\033[0m %s\n' "$*" >&2; exit 1; }
 info() { printf '\033[36m==>\033[0m %s\n' "$*"; }
@@ -42,7 +42,7 @@ case "$uname_s" in
 esac
 
 # --- resolve install prefix ---
-prefix="${PAWSCOPE_PREFIX:-}"
+prefix="${AGENT_SHOW_PREFIX:-}"
 if [ -z "$prefix" ]; then
   if [ -w "/usr/local/bin" ] || [ "$(id -u)" = "0" ]; then
     prefix="/usr/local/bin"
@@ -53,7 +53,7 @@ fi
 mkdir -p "$prefix"
 
 # --- pick download URL ---
-asset="pawscope-${target}.${archive_ext}"
+asset="agent-show-${target}.${archive_ext}"
 if [ "$VERSION" = "latest" ]; then
   url="https://github.com/${REPO}/releases/latest/download/${asset}"
   sha_url="${url}.sha256"
@@ -87,12 +87,12 @@ info "Checksum OK"
 
 # --- extract ---
 tar -xzf "$tmp/$asset" -C "$tmp"
-src="$tmp/pawscope-${target}/pawscope"
+src="$tmp/agent-show-${target}/agent-show"
 [ -x "$src" ] || err "binary not found in archive"
 
 # --- install ---
-install -m 0755 "$src" "$prefix/pawscope"
-info "Installed: $prefix/pawscope"
+install -m 0755 "$src" "$prefix/agent-show"
+info "Installed: $prefix/agent-show"
 
 # --- post-install hint ---
 case ":$PATH:" in
@@ -100,7 +100,7 @@ case ":$PATH:" in
   *) printf '\n\033[33mhint:\033[0m %s is not on $PATH. Add it to your shell rc:\n  export PATH="%s:$PATH"\n' "$prefix" "$prefix" ;;
 esac
 
-"$prefix/pawscope" --version || true
+"$prefix/agent-show" --version || true
 info "Installed."
 
 # --- auto-start (background) ---
@@ -113,17 +113,17 @@ open_browser() {
   fi
 }
 
-# Stop any existing pawscope processes so the new binary takes effect immediately
-existing_pids=$(pgrep -f 'pawscope serve' 2>/dev/null || true)
+# Stop any existing agent-show processes so the new binary takes effect immediately
+existing_pids=$(pgrep -f 'agent-show serve' 2>/dev/null || true)
 if [ -n "$existing_pids" ]; then
-  info "Stopping existing pawscope (PID: $existing_pids)..."
+  info "Stopping existing agent-show (PID: $existing_pids)..."
   echo "$existing_pids" | xargs kill 2>/dev/null || true
   sleep 2
 fi
 
 # Start new server
-log_file="${TMPDIR:-/tmp}/pawscope.log"
-nohup "$prefix/pawscope" serve --no-open >"$log_file" 2>&1 &
+log_file="${TMPDIR:-/tmp}/agent-show.log"
+nohup "$prefix/agent-show" serve --no-open >"$log_file" 2>&1 &
 pid=$!
 disown 2>/dev/null || true
 for _ in 1 2 3 4 5 6 7 8 9 10; do
@@ -137,5 +137,5 @@ if curl -fsS -o /dev/null --max-time 1 "$url"; then
   open_browser
   info "To stop: kill $pid"
 else
-  info "Could not auto-start. Run manually: pawscope serve   (log: $log_file)"
+  info "Could not auto-start. Run manually: agent-show serve   (log: $log_file)"
 fi

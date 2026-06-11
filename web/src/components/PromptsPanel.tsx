@@ -7,6 +7,7 @@ const AGENT_BADGE: Record<string, string> = {
   copilot: 'bg-cyan-500/15 text-cyan-300 border-cyan-500/30',
   claude: 'bg-violet-500/15 text-violet-300 border-violet-500/30',
   codex: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30',
+  comate: 'bg-sky-500/15 text-sky-300 border-sky-500/30',
 };
 
 const RANGE_HOURS: Record<string, number> = { '24h': 24, '7d': 24 * 7, '30d': 24 * 30 };
@@ -195,6 +196,7 @@ export function PromptsPanel({ onOpenSession }: Props) {
               <option value="copilot">copilot</option>
               <option value="claude">claude</option>
               <option value="codex">codex</option>
+              <option value="comate">comate</option>
             </select>
           </label>
           <label className="flex items-center gap-1.5 text-[11px] text-slate-400">

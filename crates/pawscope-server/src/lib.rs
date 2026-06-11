@@ -1,5 +1,9 @@
 use axum::{
     Router,
+    body::Body,
+    http::{HeaderMap, Method, Request, StatusCode},
+    middleware::{self, Next},
+    response::Response,
     routing::{delete, get, post},
 };
 use pawscope_core::AgentAdapter;
@@ -135,8 +139,54 @@ pub fn build_app(adapter: Arc<dyn AgentAdapter>) -> (Router, AppState) {
         .route("/api/events", get(sse::sse_handler))
         .route("/ws", get(ws::ws_handler))
         .fallback(assets::static_handler)
+        .layer(middleware::from_fn(local_origin_guard))
         .with_state(state.clone());
     (router, state)
+}
+
+async fn local_origin_guard(req: Request<Body>, next: Next) -> Result<Response, StatusCode> {
+    if is_mutating_method(req.method()) && !has_allowed_origin_or_referer(req.headers()) {
+        return Err(StatusCode::FORBIDDEN);
+    }
+    Ok(next.run(req).await)
+}
+
+fn is_mutating_method(method: &Method) -> bool {
+    matches!(
+        *method,
+        Method::POST | Method::PUT | Method::PATCH | Method::DELETE
+    )
+}
+
+fn has_allowed_origin_or_referer(headers: &HeaderMap) -> bool {
+    for header_name in ["origin", "referer"] {
+        if let Some(value) = headers.get(header_name).and_then(|v| v.to_str().ok()) {
+            return is_local_url(value);
+        }
+    }
+    true
+}
+
+fn is_local_url(value: &str) -> bool {
+    let Some(after_scheme) = value
+        .strip_prefix("http://")
+        .or_else(|| value.strip_prefix("https://"))
+    else {
+        return false;
+    };
+    let host_port_path = after_scheme.split('/').next().unwrap_or_default();
+    let host = host_port_path
+        .rsplit_once('@')
+        .map(|(_, h)| h)
+        .unwrap_or(host_port_path)
+        .trim_start_matches('[')
+        .split(']')
+        .next()
+        .unwrap_or(host_port_path)
+        .split(':')
+        .next()
+        .unwrap_or_default();
+    matches!(host, "localhost" | "127.0.0.1" | "::1")
 }
 
 pub fn spawn_watcher(state: AppState) {

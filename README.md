@@ -1,8 +1,8 @@
 <div align="center">
 
-<img src="./docs/screenshots/01-overview.png" alt="Pawscope overview dashboard"/>
+<img src="./docs/screenshots/01-overview.png" alt="Agent Show overview dashboard"/>
 
-# Pawscope 🐾
+# Agent Show 🐾
 
 **A local web dashboard for inspecting your CLI agent sessions in real time.**
 
@@ -11,8 +11,8 @@ One panel. Read-only. No daemon. Local by default.
 
 [English](./README.md) · [简体中文](./README.zh-CN.md)
 
-[![CI](https://github.com/benjamin7007/Pawscope/actions/workflows/ci.yml/badge.svg)](https://github.com/benjamin7007/Pawscope/actions/workflows/ci.yml)
-[![Release](https://img.shields.io/github/v/release/benjamin7007/Pawscope?logo=github)](https://github.com/benjamin7007/Pawscope/releases/latest)
+[![CI](https://github.com/benjamin7007/Agent Show/actions/workflows/ci.yml/badge.svg)](https://github.com/benjamin7007/Agent Show/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/benjamin7007/Agent Show?logo=github)](https://github.com/benjamin7007/Agent Show/releases/latest)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
 [![Rust](https://img.shields.io/badge/rust-1.87+-orange?logo=rust&logoColor=white)](https://www.rust-lang.org)
 
@@ -22,7 +22,7 @@ One panel. Read-only. No daemon. Local by default.
 
 ## What it does
 
-Pawscope reads the state your CLI agents already write to disk
+Agent Show reads the state your CLI agents already write to disk
 (`~/.copilot/session-state/`, `~/.claude/projects/`, `~/.codex/state_*.sqlite`, `~/.local/share/opencode/`)
 and renders it as a single, live-updating dashboard:
 
@@ -140,7 +140,7 @@ Hide, delete (move to trash), rename, star, tag sessions. Compare 2–5 sessions
 </tr>
 </table>
 
-> Screenshots taken from a live Pawscope instance. No synthetic data — what you see is what you get.
+> Screenshots taken from a live Agent Show instance. No synthetic data — what you see is what you get.
 
 ---
 
@@ -149,43 +149,43 @@ Hide, delete (move to trash), rename, star, tag sessions. Compare 2–5 sessions
 ### One-line install (macOS · Linux)
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/benjamin7007/Pawscope/master/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/benjamin7007/Agent Show/master/install.sh | bash
 ```
 
-Detects your platform, downloads the latest release, verifies SHA-256, drops the binary into `~/.local/bin` (or `/usr/local/bin` if writable). Pin a version with `PAWSCOPE_VERSION=v1.0.0`, change the prefix with `PAWSCOPE_PREFIX=/opt/bin`.
+Detects your platform, downloads the latest release, verifies SHA-256, drops the binary into `~/.local/bin` (or `/usr/local/bin` if writable). Pin a version with `AGENT_SHOW_VERSION=v1.0.0`, change the prefix with `AGENT_SHOW_PREFIX=/opt/bin`.
 
 ### One-line install (Windows PowerShell)
 
 ```powershell
-irm https://raw.githubusercontent.com/benjamin7007/Pawscope/master/install.ps1 | iex
+irm https://raw.githubusercontent.com/benjamin7007/Agent Show/master/install.ps1 | iex
 ```
 
-Downloads the latest release, verifies SHA-256, installs to `%LOCALAPPDATA%\pawscope`, and adds to user PATH. Pin a version with `$env:PAWSCOPE_VERSION="v1.9.1"`.
+Downloads the latest release, verifies SHA-256, installs to `%LOCALAPPDATA%\agent-show`, and adds to user PATH. Pin a version with `$env:AGENT_SHOW_VERSION="v1.9.1"`.
 
 To remove it later:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/benjamin7007/Pawscope/master/uninstall.sh | bash
+curl -fsSL https://raw.githubusercontent.com/benjamin7007/Agent Show/master/uninstall.sh | bash
 ```
 
 ### Pre-built binaries
 
-Grab the latest from [Releases](https://github.com/benjamin7007/Pawscope/releases/latest):
+Grab the latest from [Releases](https://github.com/benjamin7007/Agent Show/releases/latest):
 
 | Platform | Asset |
 |---|---|
-| macOS · Apple Silicon | `pawscope-aarch64-apple-darwin.tar.gz` |
-| macOS · Intel | `pawscope-x86_64-apple-darwin.tar.gz` |
-| Linux · x86_64 | `pawscope-x86_64-unknown-linux-gnu.tar.gz` |
-| Linux · aarch64 | `pawscope-aarch64-unknown-linux-gnu.tar.gz` |
-| Windows · x86_64 | `pawscope-x86_64-pc-windows-msvc.zip` |
+| macOS · Apple Silicon | `agent-show-aarch64-apple-darwin.tar.gz` |
+| macOS · Intel | `agent-show-x86_64-apple-darwin.tar.gz` |
+| Linux · x86_64 | `agent-show-x86_64-unknown-linux-gnu.tar.gz` |
+| Linux · aarch64 | `agent-show-aarch64-unknown-linux-gnu.tar.gz` |
+| Windows · x86_64 | `agent-show-x86_64-pc-windows-msvc.zip` |
 
 ```bash
 # macOS / Linux example
-curl -fsSL -o pawscope.tar.gz \
-  https://github.com/benjamin7007/Pawscope/releases/latest/download/pawscope-aarch64-apple-darwin.tar.gz
-tar -xzf pawscope.tar.gz
-./pawscope-aarch64-apple-darwin/pawscope serve
+curl -fsSL -o agent-show.tar.gz \
+  https://github.com/benjamin7007/Agent Show/releases/latest/download/agent-show-aarch64-apple-darwin.tar.gz
+tar -xzf agent-show.tar.gz
+./agent-show-aarch64-apple-darwin/agent-show serve
 ```
 
 Each archive ships with a matching `.sha256`.
@@ -193,8 +193,8 @@ Each archive ships with a matching `.sha256`.
 ### From source
 
 ```bash
-git clone https://github.com/benjamin7007/Pawscope.git
-cd Pawscope
+git clone https://github.com/benjamin7007/Agent Show.git
+cd Agent Show
 cargo install --path .          # or: cargo build --release
 ```
 
@@ -205,7 +205,7 @@ Requires Rust 1.87+. The web bundle is built and embedded automatically.
 ## Quick start
 
 ```bash
-pawscope serve                  # opens http://127.0.0.1:7777 in your browser
+agent-show serve                  # opens http://127.0.0.1:7777 in your browser
 ```
 
 | Flag         | Default              | Notes                            |
@@ -219,11 +219,11 @@ pawscope serve                  # opens http://127.0.0.1:7777 in your browser
 
 ## Architecture
 
-![Pawscope architecture](./docs/architecture.png)
+![Agent Show architecture](./docs/architecture.png)
 
-- **Adapter trait** — `AgentAdapter` in `pawscope-core` makes new CLIs pure additions: implement the trait, register the adapter. Six built-in adapters: Copilot, Claude, Codex, OpenCode, Gemini, Aider.
-- **Single binary** — `pawscope-server` (axum) embeds the React 19 SPA via `rust-embed` at build time; no separate static-file step at runtime.
-- **No daemon** — `pawscope serve` is a regular CLI process; close the terminal and it's gone.
+- **Adapter trait** — `AgentAdapter` in `agent-show-core` makes new CLIs pure additions: implement the trait, register the adapter. Six built-in adapters: Copilot, Claude, Codex, OpenCode, Gemini, Aider.
+- **Single binary** — `agent-show-server` (axum) embeds the React 19 SPA via `rust-embed` at build time; no separate static-file step at runtime.
+- **No daemon** — `agent-show serve` is a regular CLI process; close the terminal and it's gone.
 - **Local only** — binds `127.0.0.1` by default. No auth, no telemetry, no outbound calls (except optional Skill Store fetch from GitHub).
 
 ---
@@ -258,14 +258,14 @@ pawscope serve                  # opens http://127.0.0.1:7777 in your browser
 
 ```text
 crates/
-  pawscope-core/      # AgentAdapter trait, shared types, pricing table
-  pawscope-copilot/   # Copilot CLI session-state reader
-  pawscope-claude/    # Claude Code session reader
-  pawscope-codex/     # Codex CLI sqlite + rollout reader
-  pawscope-opencode/  # OpenCode sqlite reader
-  pawscope-gemini/    # Gemini CLI adapter (stub)
-  pawscope-aider/     # Aider adapter (stub)
-  pawscope-server/    # axum REST + WebSocket + Skill Store + embedded SPA
+  agent-show-core/      # AgentAdapter trait, shared types, pricing table
+  agent-show-copilot/   # Copilot CLI session-state reader
+  agent-show-claude/    # Claude Code session reader
+  agent-show-codex/     # Codex CLI sqlite + rollout reader
+  agent-show-opencode/  # OpenCode sqlite reader
+  agent-show-gemini/    # Gemini CLI adapter (stub)
+  agent-show-aider/     # Aider adapter (stub)
+  agent-show-server/    # axum REST + WebSocket + Skill Store + embedded SPA
 src/main.rs           # CLI entrypoint
 web/                  # React 19 + Vite + Tailwind 4 dashboard
 e2e/                  # Playwright smoke tests + screenshot capture
@@ -276,10 +276,10 @@ tests/                # Cross-adapter integration tests
 
 ## Privacy
 
-Everything runs on your machine. Pawscope reads from `~/.copilot/`, `~/.claude/`, `~/.codex/`, `~/.local/share/opencode/` and similar local paths only. The Skill Store optionally fetches from `github.com/github/awesome-copilot` — no other outbound calls. There is no analytics endpoint, no update check, and the server binds to loopback by default. Bind it elsewhere at your own risk.
+Everything runs on your machine. Agent Show reads from `~/.copilot/`, `~/.claude/`, `~/.codex/`, `~/.local/share/opencode/` and similar local paths only. The Skill Store optionally fetches from `github.com/github/awesome-copilot` — no other outbound calls. There is no analytics endpoint, no update check, and the server binds to loopback by default. Bind it elsewhere at your own risk.
 
 ---
 
 ## License
 
-[MIT](./LICENSE) © 2026 Pawscope contributors
+[MIT](./LICENSE) © 2026 Agent Show contributors

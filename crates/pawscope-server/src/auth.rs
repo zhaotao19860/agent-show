@@ -42,7 +42,7 @@ pub struct AuthStore {
 fn default_path() -> PathBuf {
     dirs::home_dir()
         .unwrap_or_else(|| PathBuf::from("."))
-        .join(".pawscope")
+        .join(".agent-show")
         .join("auth.json")
 }
 
@@ -133,7 +133,7 @@ pub async fn login(State(s): State<AppState>, Json(body): Json<LoginBody>) -> im
         .get("https://api.github.com/user")
         .header("Authorization", format!("Bearer {}", body.token))
         .header("Accept", "application/vnd.github+json")
-        .header("User-Agent", "Pawscope")
+        .header("User-Agent", "AgentShow")
         .header("X-GitHub-Api-Version", "2022-11-28")
         .send()
         .await;
@@ -178,7 +178,7 @@ pub async fn login(State(s): State<AppState>, Json(body): Json<LoginBody>) -> im
         .get(&repo_url)
         .header("Authorization", format!("Bearer {}", body.token))
         .header("Accept", "application/vnd.github+json")
-        .header("User-Agent", "Pawscope")
+        .header("User-Agent", "AgentShow")
         .header("X-GitHub-Api-Version", "2022-11-28")
         .send()
         .await;

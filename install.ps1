@@ -1,24 +1,24 @@
-# Pawscope one-line installer for Windows (PowerShell 5+).
+# Agent Show one-line installer for Windows (PowerShell 5+).
 #
 # Usage:
-#   irm https://raw.githubusercontent.com/benjamin7007/Pawscope/master/install.ps1 | iex
+#   irm https://raw.githubusercontent.com/benjamin7007/Agent Show/master/install.ps1 | iex
 #
 # Optional environment variables:
-#   $env:PAWSCOPE_VERSION   pin a specific tag (e.g. v1.9.1). Default: latest.
-#   $env:PAWSCOPE_PREFIX    install dir. Default: $env:LOCALAPPDATA\pawscope.
+#   $env:AGENT_SHOW_VERSION   pin a specific tag (e.g. v1.9.1). Default: latest.
+#   $env:AGENT_SHOW_PREFIX    install dir. Default: $env:LOCALAPPDATA\agent-show.
 #
 # Requires: PowerShell 5+ (built-in on Windows 10/11).
 
 & {
 $ErrorActionPreference = 'Stop'
 
-$Repo = "benjamin7007/Pawscope"
-$Version = if ($env:PAWSCOPE_VERSION) { $env:PAWSCOPE_VERSION } else { "latest" }
+$Repo = "benjamin7007/Agent Show"
+$Version = if ($env:AGENT_SHOW_VERSION) { $env:AGENT_SHOW_VERSION } else { "latest" }
 $Target = "x86_64-pc-windows-msvc"
-$Asset = "pawscope-${Target}.zip"
+$Asset = "agent-show-${Target}.zip"
 
 # Resolve install prefix
-$Prefix = if ($env:PAWSCOPE_PREFIX) { $env:PAWSCOPE_PREFIX } else { Join-Path $env:LOCALAPPDATA "pawscope" }
+$Prefix = if ($env:AGENT_SHOW_PREFIX) { $env:AGENT_SHOW_PREFIX } else { Join-Path $env:LOCALAPPDATA "agent-show" }
 if (-not (Test-Path $Prefix)) { New-Item -ItemType Directory -Path $Prefix -Force | Out-Null }
 
 # Build download URL
@@ -36,7 +36,7 @@ Write-Host "==> Prefix:  $Prefix" -ForegroundColor Cyan
 Write-Host "==> Asset:   $Url" -ForegroundColor Cyan
 
 # Download
-$TmpDir = Join-Path $env:TEMP "pawscope-install-$(Get-Random)"
+$TmpDir = Join-Path $env:TEMP "agent-show-install-$(Get-Random)"
 New-Item -ItemType Directory -Path $TmpDir -Force | Out-Null
 $ZipPath = Join-Path $TmpDir $Asset
 $ShaPath = Join-Path $TmpDir "${Asset}.sha256"
@@ -62,14 +62,14 @@ Write-Host "==> Checksum OK" -ForegroundColor Cyan
 
 # Extract
 Expand-Archive -Path $ZipPath -DestinationPath $TmpDir -Force
-$BinSrc = Join-Path (Join-Path $TmpDir "pawscope-${Target}") "pawscope.exe"
+$BinSrc = Join-Path (Join-Path $TmpDir "agent-show-${Target}") "agent-show.exe"
 if (-not (Test-Path $BinSrc)) {
-    Write-Host "error: pawscope.exe not found in archive" -ForegroundColor Red
+    Write-Host "error: agent-show.exe not found in archive" -ForegroundColor Red
     exit 1
 }
 
 # Install
-$BinDest = Join-Path $Prefix "pawscope.exe"
+$BinDest = Join-Path $Prefix "agent-show.exe"
 Copy-Item -Path $BinSrc -Destination $BinDest -Force
 Write-Host "==> Installed: $BinDest" -ForegroundColor Cyan
 
@@ -88,18 +88,18 @@ if ($UserPath -notlike "*$Prefix*") {
 $ver = (& $BinDest --version 2>&1) | Out-String
 Write-Host "==> $($ver.Trim())" -ForegroundColor Cyan
 
-# Auto-start: stop any existing pawscope, then start new version
+# Auto-start: stop any existing agent-show, then start new version
 $ServerUrl = "http://127.0.0.1:7777"
 
-# Kill existing pawscope processes so the new binary takes effect immediately
-$existing = Get-Process -Name "pawscope" -ErrorAction SilentlyContinue
+# Kill existing agent-show processes so the new binary takes effect immediately
+$existing = Get-Process -Name "agent-show" -ErrorAction SilentlyContinue
 if ($existing) {
-    Write-Host "==> Stopping existing pawscope (PID: $($existing.Id -join ', '))..." -ForegroundColor Yellow
+    Write-Host "==> Stopping existing agent-show (PID: $($existing.Id -join ', '))..." -ForegroundColor Yellow
     $existing | Stop-Process -Force -ErrorAction SilentlyContinue
     Start-Sleep -Seconds 2
 }
 
-Write-Host "==> Starting pawscope server..." -ForegroundColor Cyan
+Write-Host "==> Starting agent-show server..." -ForegroundColor Cyan
 Start-Process -FilePath $BinDest -ArgumentList @("serve", "--no-open") -WindowStyle Hidden
 Start-Sleep -Seconds 3
 try {
@@ -107,7 +107,7 @@ try {
     Write-Host "==> Server is up: $ServerUrl" -ForegroundColor Cyan
     Start-Process -FilePath $ServerUrl
 } catch {
-    Write-Host "==> Could not auto-start. Run manually: pawscope serve" -ForegroundColor Yellow
+    Write-Host "==> Could not auto-start. Run manually: agent-show serve" -ForegroundColor Yellow
 }
 
 Write-Host "==> Done!" -ForegroundColor Green

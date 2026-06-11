@@ -69,6 +69,18 @@ pub async fn list_skills(State(state): State<AppState>) -> Json<SkillsResponse> 
             "agents-skills".to_string(),
             PathBuf::from(format!("{home}/.agents/skills")),
         ),
+        (
+            "codex-skills".to_string(),
+            PathBuf::from(format!("{home}/.codex/skills")),
+        ),
+        (
+            "comate-skills".to_string(),
+            PathBuf::from(format!("{home}/.comate/skills")),
+        ),
+        (
+            "comate-system-skills".to_string(),
+            PathBuf::from(format!("{home}/.comate/skills/.system")),
+        ),
     ];
     for root in project_skill_roots {
         sources.push(("project-skills".to_string(), root));
@@ -241,6 +253,9 @@ fn skill_roots() -> Vec<PathBuf> {
         PathBuf::from(format!("{home}/.copilot/installed-plugins")),
         PathBuf::from(format!("{home}/.claude/skills")),
         PathBuf::from(format!("{home}/.agents/skills")),
+        PathBuf::from(format!("{home}/.codex/skills")),
+        PathBuf::from(format!("{home}/.comate/skills")),
+        PathBuf::from(format!("{home}/.comate/skills/.system")),
     ]
 }
 
@@ -494,10 +509,24 @@ pub async fn session_skills(
     let invoked: std::collections::HashSet<String> = detail.skills_invoked.into_iter().collect();
 
     let home = std::env::var("HOME").unwrap_or_default();
-    let mut sources: Vec<(&'static str, PathBuf)> = vec![(
-        "agents-skills",
-        PathBuf::from(format!("{home}/.agents/skills")),
-    )];
+    let mut sources: Vec<(&'static str, PathBuf)> = vec![
+        (
+            "agents-skills",
+            PathBuf::from(format!("{home}/.agents/skills")),
+        ),
+        (
+            "codex-skills",
+            PathBuf::from(format!("{home}/.codex/skills")),
+        ),
+        (
+            "comate-skills",
+            PathBuf::from(format!("{home}/.comate/skills")),
+        ),
+        (
+            "comate-system-skills",
+            PathBuf::from(format!("{home}/.comate/skills/.system")),
+        ),
+    ];
     match agent_key.as_str() {
         "copilot" => {
             sources.push((
@@ -517,6 +546,14 @@ pub async fn session_skills(
                 PathBuf::from(format!("{home}/.claude/skills")),
             ));
             sources.push(("project-claude", cwd.join(".claude").join("skills")));
+            sources.push(("project-agents", cwd.join(".agents").join("skills")));
+        }
+        "codex" => {
+            sources.push(("project-codex", cwd.join(".codex").join("skills")));
+            sources.push(("project-agents", cwd.join(".agents").join("skills")));
+        }
+        "comate" => {
+            sources.push(("project-comate", cwd.join(".comate").join("skills")));
             sources.push(("project-agents", cwd.join(".agents").join("skills")));
         }
         _ => {

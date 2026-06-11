@@ -24,14 +24,14 @@
   <rect width="100%" height="100%" fill="#0f172a"/>
   <rect width="100%" height="100%" fill="url(#grid)"/>
 
-  <text x="40" y="40" fill="white" font-size="18" font-weight="700">Pawscope Architecture</text>
+  <text x="40" y="40" fill="white" font-size="18" font-weight="700">Agent Show Architecture</text>
   <text x="40" y="62" fill="#94a3b8" font-size="11">Read on-disk CLI session state · adapter trait · single-binary server · embedded SPA</text>
 
   <rect x="40" y="100" width="220" height="400" rx="12" fill="none" stroke="#fbbf24" stroke-width="1" stroke-dasharray="8,4"/>
   <text x="52" y="118" fill="#fbbf24" font-size="9" font-weight="600">LOCAL FILE SYSTEM</text>
 
   <rect x="290" y="100" width="580" height="400" rx="12" fill="none" stroke="#fbbf24" stroke-width="1" stroke-dasharray="8,4"/>
-  <text x="302" y="118" fill="#fbbf24" font-size="9" font-weight="600">PAWSCOPE BINARY (SINGLE EXECUTABLE)</text>
+  <text x="302" y="118" fill="#fbbf24" font-size="9" font-weight="600">AGENT SHOW BINARY (SINGLE EXECUTABLE)</text>
 
   <rect x="304" y="138" width="200" height="350" rx="8" fill="none" stroke="#34d399" stroke-width="1" stroke-dasharray="4,3" opacity="0.6"/>
   <text x="316" y="154" fill="#34d399" font-size="8" font-weight="600">ADAPTERS · pawscope-core trait</text>
@@ -113,7 +113,7 @@
 
   <rect x="540" y="390" width="304" height="50" rx="6" fill="#0f172a"/>
   <rect x="540" y="390" width="304" height="50" rx="6" fill="rgba(120,53,15,0.3)" stroke="#fbbf24" stroke-width="1.5"/>
-  <text x="692" y="410" fill="white" font-size="11" font-weight="600" text-anchor="middle">CLI · pawscope serve</text>
+  <text x="692" y="410" fill="white" font-size="11" font-weight="600" text-anchor="middle">CLI · agent-show serve</text>
   <text x="692" y="426" fill="#94a3b8" font-size="9" text-anchor="middle">--bind 127.0.0.1:7777   --no-open</text>
 
   <rect x="940" y="260" width="140" height="80" rx="6" fill="#0f172a"/>

@@ -2,6 +2,7 @@
 name = "pawscope-server"
 version.workspace = true
 edition.workspace = true
+build = "build.rs"
 
 [dependencies]
 pawscope-core = { path = "../pawscope-core" }

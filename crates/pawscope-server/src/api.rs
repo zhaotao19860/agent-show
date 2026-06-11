@@ -2142,6 +2142,7 @@ pub async fn get_session_instructions(
                 project_files.push(f);
             }
         }
+        AgentKind::Comate => {}
         AgentKind::OpenCode => {}
     }
 
@@ -2157,6 +2158,7 @@ pub async fn get_session_instructions(
         }
         AgentKind::Claude => std::fs::read_to_string(home.join(".claude/CLAUDE.md")).ok(),
         AgentKind::Codex => std::fs::read_to_string(home.join(".codex/instructions.md")).ok(),
+        AgentKind::Comate => std::fs::read_to_string(home.join(".comate/memory.md")).ok(),
         _ => None,
     });
 
@@ -2403,6 +2405,26 @@ pub async fn all_agents_config(State(_state): State<AppState>) -> impl IntoRespo
             model: None,
             settings: serde_json::Value::Object(serde_json::Map::new()),
             instructions: None,
+        });
+    }
+
+    // ── Comate ──
+    {
+        let dir = home.join(".comate-engine");
+        let installed = dir.join("store").join("chat_sessions").is_file();
+        let data_path = if installed {
+            Some(dir.to_string_lossy().to_string())
+        } else {
+            None
+        };
+
+        agents.push(AgentConfigInfo {
+            agent: "comate".into(),
+            installed,
+            data_path,
+            model: None,
+            settings: serde_json::Value::Object(serde_json::Map::new()),
+            instructions: std::fs::read_to_string(home.join(".comate/memory.md")).ok(),
         });
     }
 
@@ -2723,13 +2745,14 @@ pub async fn analytics(
     };
     let pairs = s.detail_cache.fan_out(&s.adapter, &sessions).await;
 
+    let days = q.days.clamp(1, 365);
     let now = chrono::Utc::now();
-    let cutoff = now - chrono::Duration::days(q.days as i64);
+    let cutoff = now - chrono::Duration::days(days.saturating_sub(1) as i64);
 
     let filtered: Vec<_> = pairs
         .into_iter()
         .filter(|(meta, _)| {
-            if meta.started_at < cutoff {
+            if meta.last_event_at < cutoff {
                 return false;
             }
             if let Some(ref agent_filter) = q.agent {
@@ -2978,28 +3001,32 @@ pub async fn analytics(
         })
         .collect();
 
-    // Daily counts
+    // Daily counts, based on last activity and padded to the requested range.
     let mut daily_map: HashMap<chrono::NaiveDate, (u32, u64, u64)> = HashMap::new();
     for (meta, detail) in &filtered {
-        let date = meta.started_at.with_timezone(&chrono::Local).date_naive();
+        let date = meta.last_event_at.with_timezone(&chrono::Local).date_naive();
         let e = daily_map.entry(date).or_insert((0, 0, 0));
         e.0 += 1;
         e.1 += detail.tokens_in;
         e.2 += detail.tokens_out;
     }
-    let mut daily: Vec<DayCount> = daily_map
-        .into_iter()
-        .map(|(date, (count, ti, to))| DayCount {
-            date: date.format("%Y-%m-%d").to_string(),
-            count,
-            tokens_in: ti,
-            tokens_out: to,
+    let today = now.with_timezone(&chrono::Local).date_naive();
+    let first_day = today - chrono::Duration::days(days.saturating_sub(1) as i64);
+    let daily: Vec<DayCount> = (0..days)
+        .map(|offset| {
+            let date = first_day + chrono::Duration::days(offset as i64);
+            let (count, ti, to) = daily_map.get(&date).copied().unwrap_or((0, 0, 0));
+            DayCount {
+                date: date.format("%Y-%m-%d").to_string(),
+                count,
+                tokens_in: ti,
+                tokens_out: to,
+            }
         })
         .collect();
-    daily.sort_by(|a, b| a.date.cmp(&b.date));
 
     let resp = AnalyticsResponse {
-        days: q.days,
+        days,
         agent_filter: q.agent,
         total_sessions,
         avg_duration_mins,
@@ -3287,16 +3314,31 @@ pub struct OpenDirBody {
     pub path: String,
 }
 
-pub async fn open_dir(Json(body): Json<OpenDirBody>) -> impl IntoResponse {
-    let path = std::path::Path::new(&body.path);
-    if !path.is_dir() {
+pub async fn open_dir(State(s): State<AppState>, Json(body): Json<OpenDirBody>) -> impl IntoResponse {
+    let path = match std::fs::canonicalize(&body.path) {
+        Ok(path) if path.is_dir() => path,
+        _ => {
+            return (
+                StatusCode::BAD_REQUEST,
+                Json(serde_json::json!({"error": "Not a directory"})),
+            )
+                .into_response();
+        }
+    };
+    let sessions = s.adapter.list_sessions().await.unwrap_or_default();
+    let allowed = sessions.iter().any(|session| {
+        std::fs::canonicalize(&session.cwd)
+            .map(|cwd| cwd == path)
+            .unwrap_or(false)
+    });
+    if !allowed {
         return (
-            StatusCode::BAD_REQUEST,
-            Json(serde_json::json!({"error": "Not a directory"})),
+            StatusCode::FORBIDDEN,
+            Json(serde_json::json!({"error": "Directory is not a known project"})),
         )
             .into_response();
     }
-    let result = std::process::Command::new("open").arg(&body.path).spawn();
+    let result = std::process::Command::new("open").arg(&path).spawn();
     match result {
         Ok(_) => Json(serde_json::json!({"ok": true})).into_response(),
         Err(e) => (

@@ -265,7 +265,7 @@ export default function App() {
               <circle cx="18" cy="11" r="2.2" />
             </g>
           </svg>
-          <span className="font-semibold text-slate-100 text-base tracking-tight">Pawscope</span>
+          <span className="font-semibold text-slate-100 text-base tracking-tight">Agent Show</span>
           <TodayCostBadge sessions={sessions} tokensMap={tokensMap} t={t} />
           <div className="ml-auto flex items-center gap-1">
             <button

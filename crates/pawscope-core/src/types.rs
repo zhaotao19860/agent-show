@@ -20,6 +20,7 @@ pub enum AgentKind {
     OpenCode,
     Gemini,
     Aider,
+    Comate,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

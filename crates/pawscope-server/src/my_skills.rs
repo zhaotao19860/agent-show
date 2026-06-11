@@ -50,7 +50,7 @@ pub struct MySkillsStore {
 fn default_path() -> PathBuf {
     dirs::home_dir()
         .unwrap_or_else(|| PathBuf::from("."))
-        .join(".pawscope")
+        .join(".agent-show")
         .join("my-skills.json")
 }
 

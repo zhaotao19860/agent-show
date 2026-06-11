@@ -153,7 +153,7 @@ impl AgentAdapter for CopilotAdapter {
         }
         let trash = dirs::home_dir()
             .unwrap_or_else(|| PathBuf::from("."))
-            .join(".pawscope/trash/copilot")
+            .join(".agent-show/trash/copilot")
             .join(session_id);
         if let Some(parent) = trash.parent() {
             tokio::fs::create_dir_all(parent).await?;

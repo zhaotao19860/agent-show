@@ -1,8 +1,25 @@
 # Changelog
 
-All notable changes to Pawscope are documented here.
+All notable changes to Agent Show are documented here.
 The format is loosely based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
+
+## [1.11.0] — Agent Show migration, Comate, and hardening
+
+### Added
+- Comate adapter support for local sessions from `~/.comate-engine`.
+- Additional skill roots for Codex and Comate skill directories.
+- Embedded web build step so `cargo install --path .` builds the bundled UI.
+
+### Changed
+- User-facing app, binary, documentation, installer, and UI branding now use Agent Show / `agent-show`.
+- Analytics daily trend now uses last activity time, returns a complete date range, and renders as a clearer SVG trend chart.
+
+### Security
+- Local server refuses non-loopback binds unless `--unsafe-public` is explicitly set.
+- Mutating HTTP APIs validate local `Origin` / `Referer` headers to reduce CSRF risk.
+- Project-level skill install/uninstall and open-directory actions are restricted to known local projects.
+- Build-time dependency install uses `npm ci --ignore-scripts` to reduce supply-chain script risk.
 
 ## [1.0.0] — Public release
 
@@ -15,7 +32,7 @@ and Windows (x86_64).
   contract going forward.
 - REST + WebSocket gateway shape (`/api/sessions`, `/api/skills`,
   `/api/prompts`, `/api/conversation`, `/ws`).
-- CLI flags: `pawscope serve --bind --no-open`.
+- CLI flags: `agent-show serve --bind --no-open`.
 
 ### Documentation
 - New hero-style README (English + 简体中文).
@@ -85,8 +102,8 @@ Highlights across v0.5.0 → v0.5.4:
 - Copilot CLI session-state reader, real-time updates, embedded React UI,
   single-binary distribution.
 
-[1.0.0]: https://github.com/benjamin7007/Pawscope/releases/tag/v1.0.0
-[0.9.0]: https://github.com/benjamin7007/Pawscope/releases/tag/v0.9.0
-[0.8.0]: https://github.com/benjamin7007/Pawscope/releases/tag/v0.8.0
-[0.7.0]: https://github.com/benjamin7007/Pawscope/releases/tag/v0.7.0
-[0.6.0]: https://github.com/benjamin7007/Pawscope/releases/tag/v0.6.0
+[1.0.0]: https://github.com/benjamin7007/Agent Show/releases/tag/v1.0.0
+[0.9.0]: https://github.com/benjamin7007/Agent Show/releases/tag/v0.9.0
+[0.8.0]: https://github.com/benjamin7007/Agent Show/releases/tag/v0.8.0
+[0.7.0]: https://github.com/benjamin7007/Agent Show/releases/tag/v0.7.0
+[0.6.0]: https://github.com/benjamin7007/Agent Show/releases/tag/v0.6.0

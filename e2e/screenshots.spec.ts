@@ -5,8 +5,8 @@ import * as path from 'path';
  * Hi-res screenshots for the README. Server must be running on 127.0.0.1:7790
  * with HOME pointed at scripts/gen-demo-home.py output (so all data is fake).
  *
- *   python3 scripts/gen-demo-home.py /tmp/pawscope-demo-home
- *   HOME=/tmp/pawscope-demo-home ./target/release/pawscope serve \
+ *   python3 scripts/gen-demo-home.py /tmp/agent-show-demo-home
+ *   HOME=/tmp/agent-show-demo-home ./target/release/agent-show serve \
  *     --bind 127.0.0.1:7790 --no-open
  *   npx playwright test e2e/screenshots.spec.ts
  */

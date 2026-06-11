@@ -1,19 +1,19 @@
 #!/usr/bin/env bash
-# Pawscope uninstaller — removes the binary and stops any running server.
+# Agent Show uninstaller — removes the binary and stops any running server.
 #
 # Usage:
-#   curl -fsSL https://raw.githubusercontent.com/benjamin7007/Pawscope/master/uninstall.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/benjamin7007/Agent Show/master/uninstall.sh | bash
 #   # or, if you have it locally:
 #   bash uninstall.sh
 #
 # Env overrides:
-#   PAWSCOPE_PREFIX=/custom/bin   force a specific install dir
-#   PAWSCOPE_KEEP_DATA=1          (default) leave ~/.pawscope alone
-#   PAWSCOPE_PURGE_DATA=1         also delete ~/.pawscope (config + cache)
+#   AGENT_SHOW_PREFIX=/custom/bin   force a specific install dir
+#   AGENT_SHOW_KEEP_DATA=1          (default) leave ~/.agent-show alone
+#   AGENT_SHOW_PURGE_DATA=1         also delete ~/.agent-show (config + cache)
 
 set -euo pipefail
 
-BIN_NAME="pawscope"
+BIN_NAME="agent-show"
 RED=$'\033[0;31m'
 GREEN=$'\033[0;32m'
 YELLOW=$'\033[1;33m'
@@ -42,8 +42,8 @@ fi
 
 # --- 2. find and remove the binary -------------------------------------------
 candidates=()
-if [ -n "${PAWSCOPE_PREFIX:-}" ]; then
-  candidates+=("$PAWSCOPE_PREFIX/$BIN_NAME")
+if [ -n "${AGENT_SHOW_PREFIX:-}" ]; then
+  candidates+=("$AGENT_SHOW_PREFIX/$BIN_NAME")
 fi
 candidates+=(
   "$HOME/.local/bin/$BIN_NAME"
@@ -81,17 +81,17 @@ if [ "$removed_any" = 0 ]; then
 fi
 
 # --- 3. (optional) data dir --------------------------------------------------
-DATA_DIR="$HOME/.pawscope"
+DATA_DIR="$HOME/.agent-show"
 if [ -d "$DATA_DIR" ]; then
-  if [ "${PAWSCOPE_PURGE_DATA:-0}" = "1" ]; then
+  if [ "${AGENT_SHOW_PURGE_DATA:-0}" = "1" ]; then
     rm -rf "$DATA_DIR" && info "Removed $DATA_DIR"
   else
-    printf "%s\n" "${DIM}Note: $DATA_DIR was kept. Re-run with PAWSCOPE_PURGE_DATA=1 to delete it.${RESET}"
+    printf "%s\n" "${DIM}Note: $DATA_DIR was kept. Re-run with AGENT_SHOW_PURGE_DATA=1 to delete it.${RESET}"
   fi
 fi
 
 # --- 4. log file -------------------------------------------------------------
-LOG="${TMPDIR:-/tmp}/pawscope.log"
+LOG="${TMPDIR:-/tmp}/agent-show.log"
 [ -f "$LOG" ] && rm -f "$LOG" && info "Removed $LOG"
 
 info "Uninstall complete."
