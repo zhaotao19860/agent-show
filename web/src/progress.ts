@@ -1,16 +1,16 @@
 // Global fetch interceptor that tracks inflight /api/* requests.
-// Components can subscribe via window event 'pawscope:progress' (detail = count)
-// and 'pawscope:progress-error' (fired on non-2xx response or network error).
+// Components can subscribe via window event 'agent-show:progress' (detail = count)
+// and 'agent-show:progress-error' (fired on non-2xx response or network error).
 
 let installed = false;
 let inflight = 0;
 
 function emit() {
-  window.dispatchEvent(new CustomEvent('pawscope:progress', { detail: inflight }));
+  window.dispatchEvent(new CustomEvent('agent-show:progress', { detail: inflight }));
 }
 
 function emitError() {
-  window.dispatchEvent(new CustomEvent('pawscope:progress-error'));
+  window.dispatchEvent(new CustomEvent('agent-show:progress-error'));
 }
 
 export function installProgress() {
@@ -42,11 +42,11 @@ export function installProgress() {
 
 export function subscribeProgress(cb: (count: number) => void): () => void {
   const handler = (e: Event) => cb((e as CustomEvent<number>).detail);
-  window.addEventListener('pawscope:progress', handler);
-  return () => window.removeEventListener('pawscope:progress', handler);
+  window.addEventListener('agent-show:progress', handler);
+  return () => window.removeEventListener('agent-show:progress', handler);
 }
 
 export function subscribeProgressError(cb: () => void): () => void {
-  window.addEventListener('pawscope:progress-error', cb);
-  return () => window.removeEventListener('pawscope:progress-error', cb);
+  window.addEventListener('agent-show:progress-error', cb);
+  return () => window.removeEventListener('agent-show:progress-error', cb);
 }

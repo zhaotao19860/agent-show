@@ -28,7 +28,7 @@ binaries published for macOS (Apple Silicon + Intel), Linux (x86_64 + aarch64)
 and Windows (x86_64).
 
 ### Stabilized
-- `pawscope-core` `AgentAdapter` trait — adapters can now rely on a stable
+- `agent-show-core` `AgentAdapter` trait — adapters can now rely on a stable
   contract going forward.
 - REST + WebSocket gateway shape (`/api/sessions`, `/api/skills`,
   `/api/prompts`, `/api/conversation`, `/ws`).
@@ -56,7 +56,7 @@ and Windows (x86_64).
 - Session-level rollup with by-model breakdown.
 - Pricing table covering Opus 3.x–4.7, Sonnet 3.5–4.6, Haiku, GPT-5,
   GPT-5-Codex, GPT-4.1, GPT-4o.
-- New `pawscope-core` types: `TurnUsage`, `TokenSummary`.
+- New `agent-show-core` types: `TurnUsage`, `TokenSummary`.
 
 ## [0.7.0] — Skills taxonomy + project discovery
 

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useT } from '../i18n';
 
 type Theme = 'dark' | 'light';
-const KEY = 'pawscope.theme';
+const KEY = 'agent-show.theme';
 
 function readInitial(): Theme {
   if (typeof window === 'undefined') return 'dark';

@@ -6,26 +6,185 @@ version = 4
 name = "agent-show"
 version = "1.11.0"
 dependencies = [
+ "agent-show-aider",
+ "agent-show-claude",
+ "agent-show-codex",
+ "agent-show-comate",
+ "agent-show-copilot",
+ "agent-show-core",
+ "agent-show-gemini",
+ "agent-show-opencode",
+ "agent-show-server",
  "anyhow",
  "axum",
  "chrono",
  "clap",
  "open",
- "pawscope-aider",
- "pawscope-claude",
- "pawscope-codex",
- "pawscope-comate",
- "pawscope-copilot",
- "pawscope-core",
- "pawscope-gemini",
- "pawscope-opencode",
- "pawscope-server",
  "rusqlite",
  "serde_json",
  "tempfile",
  "tokio",
  "tracing",
  "tracing-subscriber",
+]
+
+[[package]]
+name = "agent-show-aider"
+version = "1.11.0"
+dependencies = [
+ "agent-show-core",
+ "anyhow",
+ "async-trait",
+ "chrono",
+ "dirs",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
+name = "agent-show-claude"
+version = "1.11.0"
+dependencies = [
+ "agent-show-core",
+ "anyhow",
+ "async-trait",
+ "chrono",
+ "dirs",
+ "notify",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
+name = "agent-show-codex"
+version = "1.11.0"
+dependencies = [
+ "agent-show-core",
+ "anyhow",
+ "async-trait",
+ "chrono",
+ "dirs",
+ "rusqlite",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
+name = "agent-show-comate"
+version = "1.11.0"
+dependencies = [
+ "agent-show-core",
+ "anyhow",
+ "async-trait",
+ "chrono",
+ "dirs",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
+name = "agent-show-copilot"
+version = "1.11.0"
+dependencies = [
+ "agent-show-core",
+ "anyhow",
+ "async-trait",
+ "chrono",
+ "dirs",
+ "libc",
+ "notify",
+ "serde",
+ "serde_json",
+ "serde_yaml",
+ "tempfile",
+ "thiserror 1.0.69",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
+name = "agent-show-core"
+version = "1.11.0"
+dependencies = [
+ "async-trait",
+ "chrono",
+ "serde",
+ "serde_json",
+ "thiserror 1.0.69",
+ "tokio",
+]
+
+[[package]]
+name = "agent-show-gemini"
+version = "1.11.0"
+dependencies = [
+ "agent-show-core",
+ "anyhow",
+ "async-trait",
+ "chrono",
+ "dirs",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
+name = "agent-show-opencode"
+version = "1.11.0"
+dependencies = [
+ "agent-show-core",
+ "anyhow",
+ "async-trait",
+ "chrono",
+ "dirs",
+ "rusqlite",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
+name = "agent-show-server"
+version = "1.11.0"
+dependencies = [
+ "agent-show-core",
+ "anyhow",
+ "async-trait",
+ "axum",
+ "base64",
+ "chrono",
+ "dirs",
+ "futures",
+ "hostname",
+ "mime_guess",
+ "regex",
+ "reqwest",
+ "rust-embed",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "tokio",
+ "tokio-stream",
+ "tower",
+ "tower-http",
+ "tracing",
+ "uuid",
 ]
 
 [[package]]
@@ -1227,165 +1386,6 @@ name = "pathdiff"
 version = "0.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "df94ce210e5bc13cb6651479fa48d14f601d9858cfe0467f43ae157023b938d3"
-
-[[package]]
-name = "pawscope-aider"
-version = "1.11.0"
-dependencies = [
- "anyhow",
- "async-trait",
- "chrono",
- "dirs",
- "pawscope-core",
- "serde",
- "serde_json",
- "tempfile",
- "tokio",
- "tracing",
-]
-
-[[package]]
-name = "pawscope-claude"
-version = "1.11.0"
-dependencies = [
- "anyhow",
- "async-trait",
- "chrono",
- "dirs",
- "notify",
- "pawscope-core",
- "serde",
- "serde_json",
- "tempfile",
- "tokio",
- "tracing",
-]
-
-[[package]]
-name = "pawscope-codex"
-version = "1.11.0"
-dependencies = [
- "anyhow",
- "async-trait",
- "chrono",
- "dirs",
- "pawscope-core",
- "rusqlite",
- "serde",
- "serde_json",
- "tempfile",
- "tokio",
- "tracing",
-]
-
-[[package]]
-name = "pawscope-comate"
-version = "1.11.0"
-dependencies = [
- "anyhow",
- "async-trait",
- "chrono",
- "dirs",
- "pawscope-core",
- "serde",
- "serde_json",
- "tempfile",
- "tokio",
- "tracing",
-]
-
-[[package]]
-name = "pawscope-copilot"
-version = "1.11.0"
-dependencies = [
- "anyhow",
- "async-trait",
- "chrono",
- "dirs",
- "libc",
- "notify",
- "pawscope-core",
- "serde",
- "serde_json",
- "serde_yaml",
- "tempfile",
- "thiserror 1.0.69",
- "tokio",
- "tracing",
-]
-
-[[package]]
-name = "pawscope-core"
-version = "1.11.0"
-dependencies = [
- "async-trait",
- "chrono",
- "serde",
- "serde_json",
- "thiserror 1.0.69",
- "tokio",
-]
-
-[[package]]
-name = "pawscope-gemini"
-version = "1.11.0"
-dependencies = [
- "anyhow",
- "async-trait",
- "chrono",
- "dirs",
- "pawscope-core",
- "serde",
- "serde_json",
- "tempfile",
- "tokio",
- "tracing",
-]
-
-[[package]]
-name = "pawscope-opencode"
-version = "1.11.0"
-dependencies = [
- "anyhow",
- "async-trait",
- "chrono",
- "dirs",
- "pawscope-core",
- "rusqlite",
- "serde",
- "serde_json",
- "tempfile",
- "tokio",
- "tracing",
-]
-
-[[package]]
-name = "pawscope-server"
-version = "1.11.0"
-dependencies = [
- "anyhow",
- "async-trait",
- "axum",
- "base64",
- "chrono",
- "dirs",
- "futures",
- "hostname",
- "mime_guess",
- "pawscope-core",
- "regex",
- "reqwest",
- "rust-embed",
- "serde",
- "serde_json",
- "tempfile",
- "tokio",
- "tokio-stream",
- "tower",
- "tower-http",
- "tracing",
- "uuid",
-]
 
 [[package]]
 name = "percent-encoding"

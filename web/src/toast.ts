@@ -14,7 +14,7 @@ let nextId = 1;
 
 function fire(kind: ToastKind, message: string, ttl = 3500) {
   const detail: ToastPayload = { id: nextId++, kind, message, ttl };
-  window.dispatchEvent(new CustomEvent('pawscope:toast', { detail }));
+  window.dispatchEvent(new CustomEvent('agent-show:toast', { detail }));
 }
 
 export const toast = {
@@ -25,6 +25,6 @@ export const toast = {
 
 export function subscribeToast(cb: (t: ToastPayload) => void): () => void {
   const handler = (e: Event) => cb((e as CustomEvent<ToastPayload>).detail);
-  window.addEventListener('pawscope:toast', handler);
-  return () => window.removeEventListener('pawscope:toast', handler);
+  window.addEventListener('agent-show:toast', handler);
+  return () => window.removeEventListener('agent-show:toast', handler);
 }

@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["crates/pawscope-core", "crates/pawscope-copilot", "crates/pawscope-claude", "crates/pawscope-codex", "crates/pawscope-opencode", "crates/pawscope-gemini", "crates/pawscope-aider", "crates/pawscope-comate", "crates/pawscope-server"]
+members = ["crates/agent-show-core", "crates/agent-show-copilot", "crates/agent-show-claude", "crates/agent-show-codex", "crates/agent-show-opencode", "crates/agent-show-gemini", "crates/agent-show-aider", "crates/agent-show-comate", "crates/agent-show-server"]
 
 [workspace.package]
 version = "1.11.0"
@@ -29,15 +29,15 @@ name = "agent-show"
 path = "src/main.rs"
 
 [dependencies]
-pawscope-core = { path = "crates/pawscope-core" }
-pawscope-copilot = { path = "crates/pawscope-copilot" }
-pawscope-claude = { path = "crates/pawscope-claude" }
-pawscope-codex = { path = "crates/pawscope-codex" }
-pawscope-opencode = { path = "crates/pawscope-opencode" }
-pawscope-gemini = { path = "crates/pawscope-gemini" }
-pawscope-aider = { path = "crates/pawscope-aider" }
-pawscope-comate = { path = "crates/pawscope-comate" }
-pawscope-server = { path = "crates/pawscope-server" }
+agent-show-core = { path = "crates/agent-show-core" }
+agent-show-copilot = { path = "crates/agent-show-copilot" }
+agent-show-claude = { path = "crates/agent-show-claude" }
+agent-show-codex = { path = "crates/agent-show-codex" }
+agent-show-opencode = { path = "crates/agent-show-opencode" }
+agent-show-gemini = { path = "crates/agent-show-gemini" }
+agent-show-aider = { path = "crates/agent-show-aider" }
+agent-show-comate = { path = "crates/agent-show-comate" }
+agent-show-server = { path = "crates/agent-show-server" }
 axum = { version = "0.8", features = ["ws"] }
 clap = { version = "4", features = ["derive"] }
 tokio.workspace = true

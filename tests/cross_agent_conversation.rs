@@ -8,10 +8,10 @@ use std::path::PathBuf;
 use std::sync::Arc;
 
 use chrono::Utc;
-use pawscope_claude::ClaudeAdapter;
-use pawscope_codex::CodexAdapter;
-use pawscope_core::{AgentAdapter, TurnItem};
-use pawscope_server::multi::MultiAdapter;
+use agent_show_claude::ClaudeAdapter;
+use agent_show_codex::CodexAdapter;
+use agent_show_core::{AgentAdapter, TurnItem};
+use agent_show_server::multi::MultiAdapter;
 
 /// Build a minimal Claude jsonl with one user prompt + one assistant
 /// reply containing a tool call, plus a tool_result follow-up.

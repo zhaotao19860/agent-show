@@ -50,7 +50,7 @@ export function SkillsPanel({
   const [groupByCategory, setGroupByCategory] = useState(true);
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>(() => {
     try {
-      const raw = localStorage.getItem('pawscope.skills.collapsed');
+      const raw = localStorage.getItem('agent-show.skills.collapsed');
       return raw ? JSON.parse(raw) : {};
     } catch {
       return {};
@@ -58,7 +58,7 @@ export function SkillsPanel({
   });
   useEffect(() => {
     try {
-      localStorage.setItem('pawscope.skills.collapsed', JSON.stringify(collapsed));
+      localStorage.setItem('agent-show.skills.collapsed', JSON.stringify(collapsed));
     } catch {
       // ignore quota / privacy-mode failures
     }

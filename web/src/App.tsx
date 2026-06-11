@@ -53,12 +53,12 @@ export default function App() {
   const [hiddenIds, setHiddenIds] = useState<Set<string>>(new Set());
   const [showHidden, setShowHidden] = useState(false);
   const [sidebarWidth, setSidebarWidth] = useState<number>(() => {
-    const v = parseInt(localStorage.getItem('pawscope.sidebarWidth') ?? '', 10);
+    const v = parseInt(localStorage.getItem('agent-show.sidebarWidth') ?? '', 10);
     return Number.isFinite(v) && v >= 280 && v <= 720 ? v : 440;
   });
 
   useEffect(() => {
-    localStorage.setItem('pawscope.sidebarWidth', String(sidebarWidth));
+    localStorage.setItem('agent-show.sidebarWidth', String(sidebarWidth));
   }, [sidebarWidth]);
 
   useEffect(() => {
@@ -533,9 +533,9 @@ function TodayCostBadge({ sessions, tokensMap, t }: {
   t: (k: string) => string;
 }) {
   type Period = 'today' | 'week' | 'month';
-  const [period, setPeriod] = useState<Period>(() => (localStorage.getItem('pawscope.costPeriod') as Period) || 'today');
+  const [period, setPeriod] = useState<Period>(() => (localStorage.getItem('agent-show.costPeriod') as Period) || 'today');
   const [open, setOpen] = useState(false);
-  useEffect(() => { localStorage.setItem('pawscope.costPeriod', period); }, [period]);
+  useEffect(() => { localStorage.setItem('agent-show.costPeriod', period); }, [period]);
   const { cost, count } = useMemo(() => {
     const now = new Date();
     let cutoff: Date;
@@ -596,7 +596,7 @@ function CostSparkline({ sessions, tokensMap, t }: {
   t: (k: string) => string;
 }) {
   const [budget, setBudget] = useState<number>(() => {
-    const v = parseFloat(localStorage.getItem('pawscope.dailyBudget') ?? '');
+    const v = parseFloat(localStorage.getItem('agent-show.dailyBudget') ?? '');
     return Number.isFinite(v) && v > 0 ? v : 0;
   });
   const editBudget = () => {
@@ -606,8 +606,8 @@ function CostSparkline({ sessions, tokensMap, t }: {
     const v = parseFloat(raw);
     if (!Number.isFinite(v) || v < 0) return;
     setBudget(v);
-    if (v > 0) localStorage.setItem('pawscope.dailyBudget', String(v));
-    else localStorage.removeItem('pawscope.dailyBudget');
+    if (v > 0) localStorage.setItem('agent-show.dailyBudget', String(v));
+    else localStorage.removeItem('agent-show.dailyBudget');
   };
   const days7 = useMemo(() => {
     const today = new Date();

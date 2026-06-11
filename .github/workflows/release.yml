@@ -75,11 +75,11 @@ jobs:
 
       - name: Build (cargo)
         if: matrix.cross != true
-        run: cargo build --release --locked --target ${{ matrix.target }} --bin pawscope
+        run: cargo build --release --locked --target ${{ matrix.target }} --bin agent-show
 
       - name: Build (cross)
         if: matrix.cross == true
-        run: cross build --release --locked --target ${{ matrix.target }} --bin pawscope
+        run: cross build --release --locked --target ${{ matrix.target }} --bin agent-show
 
       - name: Package (unix)
         if: matrix.archive == 'tar.gz'
@@ -87,9 +87,9 @@ jobs:
         run: |
           set -euo pipefail
           BIN_DIR="target/${{ matrix.target }}/release"
-          STAGE="pawscope-${{ matrix.target }}"
+          STAGE="agent-show-${{ matrix.target }}"
           mkdir -p "$STAGE"
-          cp "$BIN_DIR/pawscope" "$STAGE/"
+          cp "$BIN_DIR/agent-show" "$STAGE/"
           cp README.md LICENSE "$STAGE/"
           tar -czf "$STAGE.tar.gz" "$STAGE"
           shasum -a 256 "$STAGE.tar.gz" > "$STAGE.tar.gz.sha256"
@@ -98,9 +98,9 @@ jobs:
         if: matrix.archive == 'zip'
         shell: pwsh
         run: |
-          $stage = "pawscope-${{ matrix.target }}"
+          $stage = "agent-show-${{ matrix.target }}"
           New-Item -ItemType Directory -Force -Path $stage | Out-Null
-          Copy-Item "target/${{ matrix.target }}/release/pawscope.exe" $stage
+          Copy-Item "target/${{ matrix.target }}/release/agent-show.exe" $stage
           Copy-Item README.md, LICENSE $stage
           Compress-Archive -Path $stage -DestinationPath "$stage.zip"
           $hash = (Get-FileHash "$stage.zip" -Algorithm SHA256).Hash.ToLower()
@@ -108,12 +108,12 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: pawscope-${{ matrix.target }}
+          name: agent-show-${{ matrix.target }}
           path: |
-            pawscope-${{ matrix.target }}.tar.gz
-            pawscope-${{ matrix.target }}.tar.gz.sha256
-            pawscope-${{ matrix.target }}.zip
-            pawscope-${{ matrix.target }}.zip.sha256
+            agent-show-${{ matrix.target }}.tar.gz
+            agent-show-${{ matrix.target }}.tar.gz.sha256
+            agent-show-${{ matrix.target }}.zip
+            agent-show-${{ matrix.target }}.zip.sha256
           if-no-files-found: ignore
 
   release:

@@ -72,7 +72,7 @@ function CopyBtn({ text, label }: { text: string; label?: string }) {
   );
 }
 
-// --- Types mirroring pawscope-core ConversationLog ---
+// --- Types mirroring agent-show-core ConversationLog ---
 export type TurnItem =
   | { kind: 'assistant_message'; at: string; content: string }
   | {

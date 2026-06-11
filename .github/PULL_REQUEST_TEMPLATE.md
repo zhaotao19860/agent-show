@@ -1,4 +1,4 @@
-<!-- Thanks for sending a PR! Pawscope is small and opinionated — please keep changes focused. -->
+<!-- Thanks for sending a PR! Agent Show is small and opinionated — please keep changes focused. -->
 
 ## Summary
 
@@ -25,7 +25,7 @@ Pick whatever applies and add details:
 - `cargo test --workspace`
 - `cargo clippy --workspace --all-targets -- -D warnings`
 - `cd web && npm run build && npm run lint`
-- Ran `pawscope serve` locally and clicked through ____
+- Ran `agent-show serve` locally and clicked through ____
 - Added new tests in ____
 -->
 

@@ -7,15 +7,15 @@ body:
     attributes:
       value: |
         Thanks for filing! A few notes before you start:
-        - Pawscope only **reads** local CLI session files. If a session doesn't appear, it's almost always a parser issue — please attach a sample (with secrets redacted).
+        - Agent Show only **reads** local CLI session files. If a session doesn't appear, it's almost always a parser issue — please attach a sample (with secrets redacted).
         - For security issues, please email instead of opening a public issue.
 
   - type: input
     id: version
     attributes:
-      label: Pawscope version
-      description: Output of `pawscope --version`
-      placeholder: "pawscope 1.0.0"
+      label: Agent Show version
+      description: Output of `agent-show --version`
+      placeholder: "agent-show 1.0.0"
     validations:
       required: true
 
@@ -59,7 +59,7 @@ body:
     attributes:
       label: Steps to reproduce
       placeholder: |
-        1. Run `pawscope serve`
+        1. Run `agent-show serve`
         2. Open http://127.0.0.1:7777
         3. Click "..."
         4. ...
@@ -70,7 +70,7 @@ body:
     id: logs
     attributes:
       label: Logs
-      description: Paste the terminal output of `pawscope serve` (or `RUST_LOG=debug pawscope serve`). Redact any paths/secrets.
+      description: Paste the terminal output of `agent-show serve` (or `RUST_LOG=debug agent-show serve`). Redact any paths/secrets.
       render: shell
 
   - type: textarea

@@ -28,7 +28,7 @@ export function ToastContainer() {
         return (
           <div
             key={t.id}
-            className={`pawscope-toast pointer-events-auto min-w-[240px] max-w-[420px] flex items-start gap-2 px-3 py-2 rounded-md border ${s.ring} backdrop-blur-sm shadow-lg`}
+            className={`agent-show-toast pointer-events-auto min-w-[240px] max-w-[420px] flex items-start gap-2 px-3 py-2 rounded-md border ${s.ring} backdrop-blur-sm shadow-lg`}
           >
             <span className={`text-sm leading-5 ${s.iconColor}`}>{s.icon}</span>
             <span className="flex-1 text-[13px] leading-5 text-slate-100 whitespace-pre-wrap break-words">

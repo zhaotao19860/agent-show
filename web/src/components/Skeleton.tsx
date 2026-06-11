@@ -8,7 +8,7 @@ interface Props {
 export function Skeleton({ className = '', style }: Props) {
   return (
     <div
-      className={`pawscope-skeleton rounded bg-slate-800/60 ${className}`}
+      className={`agent-show-skeleton rounded bg-slate-800/60 ${className}`}
       style={style}
     />
   );

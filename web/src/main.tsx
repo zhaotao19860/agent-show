@@ -7,13 +7,13 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 
 installProgress();
 
-// One-shot localStorage migration: agent-lens.* → pawscope.*
+// One-shot localStorage migration: agent-lens.* → agent-show.*
 try {
   const ls = window.localStorage;
   for (const oldKey of ['agent-lens.theme', 'agent-lens.lang', 'agent-lens.skills.collapsed']) {
     const val = ls.getItem(oldKey);
     if (val == null) continue;
-    const newKey = oldKey.replace(/^agent-lens\./, 'pawscope.');
+    const newKey = oldKey.replace(/^agent-lens\./, 'agent-show.');
     if (ls.getItem(newKey) == null) ls.setItem(newKey, val);
     ls.removeItem(oldKey);
   }
@@ -21,7 +21,7 @@ try {
 
 // Apply persisted theme before first paint to avoid a dark→light flash.
 try {
-  const stored = window.localStorage.getItem('pawscope.theme');
+  const stored = window.localStorage.getItem('agent-show.theme');
   if (stored === 'light') document.documentElement.classList.add('theme-light');
 } catch {}
 

@@ -6,7 +6,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        Pawscope's scope is intentionally narrow: **read-only, local-only inspection of CLI agent sessions**.
+        Agent Show's scope is intentionally narrow: **read-only, local-only inspection of CLI agent sessions**.
         Requests that fit that scope (new adapters, better views, richer analytics) are very welcome.
         Requests that change session files, send data off-device, or require a server component are usually out of scope.
 

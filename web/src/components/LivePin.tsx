@@ -12,8 +12,8 @@ type Session = {
 
 type Pulse = { bins: number[]; events: number };
 
-const DISMISS_KEY = 'pawscope.livepin.dismissed';
-const COLLAPSE_KEY = 'pawscope.livepin.collapsed';
+const DISMISS_KEY = 'agent-show.livepin.dismissed';
+const COLLAPSE_KEY = 'agent-show.livepin.collapsed';
 
 function elapsed(iso: string | null | undefined, lang: string): string {
   if (!iso) return '—';

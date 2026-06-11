@@ -32,40 +32,40 @@ async fn main() -> Result<()> {
             unsafe_public,
         } => {
             let addr = validate_bind_addr(&bind, unsafe_public)?;
-            let mut adapters: Vec<Arc<dyn pawscope_core::AgentAdapter>> = Vec::new();
-            match pawscope_copilot::CopilotAdapter::new() {
+            let mut adapters: Vec<Arc<dyn agent_show_core::AgentAdapter>> = Vec::new();
+            match agent_show_copilot::CopilotAdapter::new() {
                 Ok(a) => adapters.push(Arc::new(a)),
                 Err(e) => tracing::warn!("copilot adapter disabled: {e}"),
             }
-            match pawscope_claude::ClaudeAdapter::new() {
+            match agent_show_claude::ClaudeAdapter::new() {
                 Ok(a) => adapters.push(Arc::new(a)),
                 Err(e) => tracing::warn!("claude adapter disabled: {e}"),
             }
-            match pawscope_codex::CodexAdapter::new() {
+            match agent_show_codex::CodexAdapter::new() {
                 Ok(a) => adapters.push(Arc::new(a)),
                 Err(e) => tracing::warn!("codex adapter disabled: {e}"),
             }
-            match pawscope_opencode::OpenCodeAdapter::new() {
+            match agent_show_opencode::OpenCodeAdapter::new() {
                 Ok(a) => adapters.push(Arc::new(a)),
                 Err(e) => tracing::warn!("opencode adapter disabled: {e}"),
             }
-            match pawscope_gemini::GeminiAdapter::new() {
+            match agent_show_gemini::GeminiAdapter::new() {
                 Ok(a) => adapters.push(Arc::new(a)),
                 Err(e) => tracing::warn!("gemini adapter disabled: {e}"),
             }
-            match pawscope_aider::AiderAdapter::new() {
+            match agent_show_aider::AiderAdapter::new() {
                 Ok(a) => adapters.push(Arc::new(a)),
                 Err(e) => tracing::warn!("aider adapter disabled: {e}"),
             }
-            match pawscope_comate::ComateAdapter::new() {
+            match agent_show_comate::ComateAdapter::new() {
                 Ok(a) => adapters.push(Arc::new(a)),
                 Err(e) => tracing::warn!("comate adapter disabled: {e}"),
             }
             tracing::info!("active adapters: {}", adapters.len());
-            let adapter: Arc<dyn pawscope_core::AgentAdapter> =
-                Arc::new(pawscope_server::MultiAdapter::new(adapters));
-            let (router, state) = pawscope_server::build_app(adapter);
-            pawscope_server::spawn_watcher(state);
+            let adapter: Arc<dyn agent_show_core::AgentAdapter> =
+                Arc::new(agent_show_server::MultiAdapter::new(adapters));
+            let (router, state) = agent_show_server::build_app(adapter);
+            agent_show_server::spawn_watcher(state);
             let listener = tokio::net::TcpListener::bind(addr).await?;
             tracing::info!("listening on http://{addr}");
             if !no_open {

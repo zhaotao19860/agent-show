@@ -8,7 +8,7 @@ import { ToolTrend } from './ToolTrend';
 import { estimateCostUsd, formatUsd, priceFor } from '../pricing';
 
 /* ── Collapse event for expand/collapse-all ── */
-const COLLAPSE_EVENT = 'pawscope-collapse-toggle';
+const COLLAPSE_EVENT = 'agent-show-collapse-toggle';
 
 const COLLAPSIBLE_IDS = [
   'insights', 'today-efficiency', 'token-usage', 'cost-summary',
@@ -34,7 +34,7 @@ function CollapsibleCard({
   defaultOpen?: boolean;
   children: React.ReactNode;
 }) {
-  const key = `pawscope.collapse.${id}`;
+  const key = `agent-show.collapse.${id}`;
   const [open, setOpen] = useState(() => {
     try {
       const saved = localStorage.getItem(key);
@@ -89,7 +89,7 @@ function SectionGroup({ label }: { label: string }) {
 
 function toggleAllSections(expand: boolean) {
   for (const id of COLLAPSIBLE_IDS) {
-    try { localStorage.setItem(`pawscope.collapse.${id}`, expand ? '1' : '0'); } catch {}
+    try { localStorage.setItem(`agent-show.collapse.${id}`, expand ? '1' : '0'); } catch {}
   }
   window.dispatchEvent(new Event(COLLAPSE_EVENT));
 }
@@ -97,7 +97,7 @@ function toggleAllSections(expand: boolean) {
 function CollapsibleWrap({ id, label, defaultOpen = true, children }: {
   id: string; label: string; defaultOpen?: boolean; children: React.ReactNode;
 }) {
-  const key = `pawscope.collapse.${id}`;
+  const key = `agent-show.collapse.${id}`;
   const [open, setOpen] = useState(() => {
     try { const saved = localStorage.getItem(key); return saved !== null ? saved !== '0' : defaultOpen; } catch { return defaultOpen; }
   });
@@ -603,14 +603,14 @@ function fmtTokens(n: number): string {
 function DormantBanner({ active, onOpen }: { active: Session[]; onOpen?: (id: string) => void }) {
   const { t } = useT();
   const [days, setDays] = useState<number>(() => {
-    const v = parseInt(localStorage.getItem('pawscope.dormantDays') ?? '', 10);
+    const v = parseInt(localStorage.getItem('agent-show.dormantDays') ?? '', 10);
     return Number.isFinite(v) && v >= 1 ? v : 3;
   });
   const [collapsed, setCollapsed] = useState<boolean>(() =>
-    localStorage.getItem('pawscope.dormantCollapsed') === '1'
+    localStorage.getItem('agent-show.dormantCollapsed') === '1'
   );
-  useEffect(() => { localStorage.setItem('pawscope.dormantDays', String(days)); }, [days]);
-  useEffect(() => { localStorage.setItem('pawscope.dormantCollapsed', collapsed ? '1' : '0'); }, [collapsed]);
+  useEffect(() => { localStorage.setItem('agent-show.dormantDays', String(days)); }, [days]);
+  useEffect(() => { localStorage.setItem('agent-show.dormantCollapsed', collapsed ? '1' : '0'); }, [collapsed]);
   const now = Date.now();
   const dormant = useMemo(() => {
     const ms = days * 24 * 3600 * 1000;
@@ -735,7 +735,7 @@ function InsightsCard({
     }
 
     // === 2. Daily budget overruns ===
-    const budgetRaw = parseFloat(localStorage.getItem('pawscope.dailyBudget') ?? '');
+    const budgetRaw = parseFloat(localStorage.getItem('agent-show.dailyBudget') ?? '');
     if (Number.isFinite(budgetRaw) && budgetRaw > 0) {
       const overDays = dayCost.filter(c => c > budgetRaw).length;
       if (overDays > 0) {
@@ -1775,7 +1775,7 @@ export function OverviewPanel({
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `pawscope-${period}-${stamp}.md`;
+    a.download = `agent-show-${period}-${stamp}.md`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
