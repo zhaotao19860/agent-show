@@ -100,8 +100,8 @@ Highlights across v0.5.0 → v0.5.4:
 - Copilot CLI session-state reader, real-time updates, embedded React UI,
   single-binary distribution.
 
-[1.0.0]: https://github.com/benjamin7007/Agent Show/releases/tag/v1.0.0
-[0.9.0]: https://github.com/benjamin7007/Agent Show/releases/tag/v0.9.0
-[0.8.0]: https://github.com/benjamin7007/Agent Show/releases/tag/v0.8.0
-[0.7.0]: https://github.com/benjamin7007/Agent Show/releases/tag/v0.7.0
-[0.6.0]: https://github.com/benjamin7007/Agent Show/releases/tag/v0.6.0
+[1.0.0]: https://github.com/zhaotao19860/agent-show/releases/tag/v1.0.0
+[0.9.0]: https://github.com/zhaotao19860/agent-show/releases/tag/v0.9.0
+[0.8.0]: https://github.com/zhaotao19860/agent-show/releases/tag/v0.8.0
+[0.7.0]: https://github.com/zhaotao19860/agent-show/releases/tag/v0.7.0
+[0.6.0]: https://github.com/zhaotao19860/agent-show/releases/tag/v0.6.0

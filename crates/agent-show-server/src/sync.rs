@@ -388,7 +388,7 @@ fn generate_readme(skills: &[MySkill]) -> String {
     let mut md = String::new();
     md.push_str("# 🐾 My Skills\n\n");
     md.push_str(&format!(
-        "> Managed by [Agent Show](https://github.com/benjamin7007/Agent Show) — {} skills across {} categories\n\n",
+        "> Managed by [Agent Show](https://github.com/zhaotao19860/agent-show) — {} skills across {} categories\n\n",
         skills.len(),
         by_category.len()
     ));

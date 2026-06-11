@@ -11,8 +11,8 @@ One panel. Read-only. No daemon. Local by default.
 
 [English](./README.md) · [简体中文](./README.zh-CN.md)
 
-[![CI](https://github.com/benjamin7007/Agent Show/actions/workflows/ci.yml/badge.svg)](https://github.com/benjamin7007/Agent Show/actions/workflows/ci.yml)
-[![Release](https://img.shields.io/github/v/release/benjamin7007/Agent Show?logo=github)](https://github.com/benjamin7007/Agent Show/releases/latest)
+[![CI](https://github.com/zhaotao19860/agent-show/actions/workflows/ci.yml/badge.svg)](https://github.com/zhaotao19860/agent-show/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/zhaotao19860/agent-show?logo=github)](https://github.com/zhaotao19860/agent-show/releases/latest)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
 [![Rust](https://img.shields.io/badge/rust-1.87+-orange?logo=rust&logoColor=white)](https://www.rust-lang.org)
 
@@ -149,7 +149,7 @@ Hide, delete (move to trash), rename, star, tag sessions. Compare 2–5 sessions
 Agent Show is installed from source.
 
 ```bash
-git clone https://github.com/benjamin7007/agent-show.git
+git clone https://github.com/zhaotao19860/agent-show.git
 cd agent-show
 cargo install --path .
 ```
