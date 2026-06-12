@@ -286,6 +286,7 @@ fn parse_detail(value: &Value) -> SessionDetail {
         .cloned()
         .unwrap_or_default();
 
+    let mut previous_context_used: u64 = 0;
     for message in messages {
         let role = message.get("role").and_then(|r| r.as_str()).unwrap_or("");
         let timestamp = message_time(value, &message);
@@ -305,10 +306,14 @@ fn parse_detail(value: &Value) -> SessionDetail {
             "assistant" => {
                 detail.assistant_messages += 1;
                 detail.turns += 1;
-                if let Some(usage) = message.get("tokenUsage") {
-                    if let Some(n) = usage.get("contextUsed").and_then(|v| v.as_u64()) {
-                        detail.tokens_in = detail.tokens_in.saturating_add(n);
-                    }
+                if let Some(n) = message
+                    .get("tokenUsage")
+                    .and_then(|usage| usage.get("contextUsed"))
+                    .and_then(|v| v.as_u64())
+                {
+                    let delta = n.saturating_sub(previous_context_used);
+                    detail.tokens_in = detail.tokens_in.saturating_add(delta);
+                    previous_context_used = n;
                 }
                 collect_elements(&message, timestamp, &mut detail, &mut seen_skills);
             }
@@ -329,6 +334,7 @@ fn parse_conversation(value: &Value) -> ConversationLog {
         .cloned()
         .unwrap_or_default();
 
+    let mut previous_context_used: u64 = 0;
     for message in messages {
         let role = message.get("role").and_then(|r| r.as_str()).unwrap_or("");
         let at = message_time(value, &message);
@@ -374,7 +380,7 @@ fn parse_conversation(value: &Value) -> ConversationLog {
                     started_at: at,
                     completed_at: Some(at),
                     items,
-                    usage: turn_usage(&message),
+                    usage: turn_usage(&message, &mut previous_context_used),
                 });
                 log.version += 1;
             }
@@ -474,8 +480,34 @@ fn message_time(session: &Value, message: &Value) -> DateTime<Utc> {
         .get("ctime")
         .or_else(|| message.get("timestamp"))
         .and_then(value_to_time)
+        .or_else(|| earliest_element_time(message))
         .or_else(|| session.get("ctime").and_then(value_to_time))
         .unwrap_or_else(Utc::now)
+}
+
+fn earliest_element_time(message: &Value) -> Option<DateTime<Utc>> {
+    let mut earliest: Option<DateTime<Utc>> = None;
+    if let Some(elements) = message.get("elements").and_then(|e| e.as_array()) {
+        for element in elements {
+            collect_earliest_time(element, &mut earliest);
+        }
+    }
+    earliest
+}
+
+fn collect_earliest_time(element: &Value, earliest: &mut Option<DateTime<Utc>>) {
+    for key in ["startTime", "lastModifiedTime", "ctime", "timestamp"] {
+        if let Some(ts) = element.get(key).and_then(value_to_time) {
+            if earliest.map(|current| ts < current).unwrap_or(true) {
+                *earliest = Some(ts);
+            }
+        }
+    }
+    if let Some(children) = element.get("children").and_then(|c| c.as_array()) {
+        for child in children {
+            collect_earliest_time(child, earliest);
+        }
+    }
 }
 
 fn value_to_time(value: &Value) -> Option<DateTime<Utc>> {
@@ -598,7 +630,7 @@ fn first_user_text(value: &Value) -> Option<String> {
     None
 }
 
-fn turn_usage(message: &Value) -> Option<TurnUsage> {
+fn turn_usage(message: &Value, previous_context_used: &mut u64) -> Option<TurnUsage> {
     let usage = message.get("tokenUsage")?;
     let model = message
         .pointer("/payload/model/displayName")
@@ -606,9 +638,12 @@ fn turn_usage(message: &Value) -> Option<TurnUsage> {
         .and_then(|v| v.as_str())
         .unwrap_or("comate")
         .to_string();
+    let context_used = usage.get("contextUsed").and_then(|v| v.as_u64())?;
+    let input_tokens = context_used.saturating_sub(*previous_context_used);
+    *previous_context_used = context_used;
     let mut turn_usage = TurnUsage {
         model,
-        input_tokens: usage.get("contextUsed").and_then(|v| v.as_u64()),
+        input_tokens: Some(input_tokens),
         output_tokens: None,
         cache_read_tokens: None,
         cache_write_tokens: None,

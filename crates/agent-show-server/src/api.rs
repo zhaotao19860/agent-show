@@ -6,7 +6,7 @@ use axum::{
     response::IntoResponse,
 };
 use chrono::Timelike;
-use agent_show_core::{AgentKind, SessionStatus};
+use agent_show_core::{AgentKind, SessionDetail, SessionStatus};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -149,31 +149,40 @@ pub async fn today_active(State(s): State<AppState>) -> impl IntoResponse {
         *by_agent.entry(agent_key.clone()).or_default() += 1;
 
         let today_turns = detail
-            .prompts
-            .iter()
-            .filter(|prompt| {
-                prompt
-                    .timestamp
-                    .map(|ts| ts.with_timezone(&chrono::Local).date_naive() >= today_start)
-                    .unwrap_or(false)
+            .conversation
+            .as_ref()
+            .map(|conversation| {
+                conversation
+                    .interactions
+                    .iter()
+                    .flat_map(|interaction| interaction.turns.iter())
+                    .filter(|turn| turn.started_at.with_timezone(&chrono::Local).date_naive() >= today_start)
+                    .count() as u64
             })
-            .count() as u64;
+            .unwrap_or_else(|| {
+                detail
+                    .prompts
+                    .iter()
+                    .filter(|prompt| {
+                        prompt
+                            .timestamp
+                            .map(|ts| ts.with_timezone(&chrono::Local).date_naive() >= today_start)
+                            .unwrap_or(false)
+                    })
+                    .count() as u64
+            });
         let today_tools = detail
             .tool_calls
             .iter()
             .filter(|tool| tool.timestamp.with_timezone(&chrono::Local).date_naive() >= today_start)
             .count() as u64;
 
-        let started_today = meta.started_at.with_timezone(&chrono::Local).date_naive() >= today_start;
-        let (today_tokens_in, today_tokens_out, token_scope) = if started_today {
-            (detail.tokens_in, detail.tokens_out, "today")
-        } else if today_turns > 0 || today_tools > 0 {
+        let (today_tokens_in, today_tokens_out, token_scope) = today_tokens_from_detail(&detail, today_start);
+        if token_scope == "unavailable" {
             token_partial_sessions += 1;
-            (0, 0, "unavailable")
-        } else {
+        } else if token_scope == "estimated" {
             token_estimated_sessions += 1;
-            (detail.tokens_in, detail.tokens_out, "session")
-        };
+        }
 
         total_turns += today_turns;
         total_tokens_in += today_tokens_in;
@@ -212,6 +221,36 @@ pub async fn today_active(State(s): State<AppState>) -> impl IntoResponse {
         "items": items,
     }))
     .into_response()
+}
+
+fn today_tokens_from_detail(detail: &SessionDetail, today_start: chrono::NaiveDate) -> (u64, u64, &'static str) {
+    let Some(conversation) = detail.conversation.as_ref() else {
+        return (0, 0, "unavailable");
+    };
+    let mut tokens_in = 0u64;
+    let mut tokens_out = 0u64;
+    let mut saw_today_turn = false;
+    let mut saw_usage = false;
+    for interaction in &conversation.interactions {
+        for turn in &interaction.turns {
+            if turn.started_at.with_timezone(&chrono::Local).date_naive() < today_start {
+                continue;
+            }
+            saw_today_turn = true;
+            if let Some(usage) = &turn.usage {
+                saw_usage = true;
+                tokens_in = tokens_in.saturating_add(usage.input_tokens.unwrap_or(0));
+                tokens_out = tokens_out.saturating_add(usage.output_tokens.unwrap_or(0));
+            }
+        }
+    }
+    if saw_usage {
+        (tokens_in, tokens_out, "estimated")
+    } else if saw_today_turn {
+        (0, 0, "unavailable")
+    } else {
+        (0, 0, "today")
+    }
 }
 
 pub async fn overview(State(s): State<AppState>) -> impl IntoResponse {

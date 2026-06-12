@@ -525,6 +525,7 @@ const dict: Record<string, { en: string; zh: string }> = {
   'misc.today_active_scope': { en: 'Sessions whose last activity is today', zh: '按最后活动时间在今天统计' },
   'misc.session_based': { en: 'session-level', zh: '会话级统计' },
   'misc.estimated': { en: 'estimated', zh: '已估算' },
+  'misc.estimated_from_turn_usage': { en: 'estimated from turn usage', zh: '按每轮 usage 估算' },
   'misc.recent_active_sessions': { en: 'Recent active sessions today', zh: '今日最近活跃会话' },
   'misc.token_not_split': { en: 'cross-day sessions not split', zh: '个跨天会话未拆分' },
   'misc.cost_excludes_unsplit': { en: 'excludes unsplit cross-day sessions', zh: '不含未拆分跨天会话' },

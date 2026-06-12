@@ -1263,9 +1263,11 @@ function TodayActiveView({
                 <div className="text-[10px] text-slate-600 mt-0.5">
                   {(data.token_partial_sessions ?? 0) > 0
                     ? t('misc.cost_excludes_unsplit')
-                    : (stats?.unknownCostSessions ?? 0) > 0
-                      ? `${stats?.unknownCostSessions} ${t('misc.sessions_unpriced')}`
-                      : t('misc.estimated')}
+                    : data.token_scope === 'today_started_sessions' || data.items.some(item => item.token_scope === 'estimated')
+                      ? t('misc.estimated_from_turn_usage')
+                      : (stats?.unknownCostSessions ?? 0) > 0
+                        ? `${stats?.unknownCostSessions} ${t('misc.sessions_unpriced')}`
+                        : t('misc.estimated')}
                 </div>
               </div>
               <div className="rounded-md bg-slate-950/50 border border-slate-800/70 px-3 py-2">
