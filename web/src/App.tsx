@@ -124,7 +124,7 @@ export default function App() {
   };
 
   useEffect(() => {
-    fetchSessions().then(setSessions);
+    fetchSessions(true).then(setSessions);
     fetch('/api/sessions/tokens').then(r => r.ok ? r.json() : {}).then(setTokensMap).catch(() => {});
     fetch('/api/sessions/pulse').then(r => r.ok ? r.json() : {}).then(setPulseMap).catch(() => {});
   }, []);
@@ -132,7 +132,7 @@ export default function App() {
   useEffect(() => {
     const ws = connectWs(ev => {
       if (ev?.kind === 'session_list_changed') {
-        fetchSessions().then(setSessions);
+        fetchSessions(true).then(setSessions);
       } else if (ev?.kind === 'detail_updated' && selected === ev.session_id) {
         setDetail(ev.detail);
       }

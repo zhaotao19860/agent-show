@@ -1,5 +1,5 @@
-export async function fetchSessions() {
-  const r = await fetch('/api/sessions');
+export async function fetchSessions(showHidden = false) {
+  const r = await fetch(showHidden ? '/api/sessions?show_hidden=true' : '/api/sessions');
   return r.json();
 }
 export async function fetchDetail(id: string) {
