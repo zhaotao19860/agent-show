@@ -1251,13 +1251,21 @@ function TodayActiveView({
               <div className="rounded-md bg-slate-950/50 border border-slate-800/70 px-3 py-2">
                 <div className="text-[9px] uppercase tracking-wider text-slate-500">{t('stat.tokens_total')}</div>
                 <div className="text-2xl font-semibold text-violet-300 tabular-nums">{fmt(data.tokens_in + data.tokens_out)}</div>
-                <div className="text-[10px] text-slate-600 mt-0.5">↓ {fmt(data.tokens_in)} · ↑ {fmt(data.tokens_out)}</div>
+                <div className="text-[10px] text-slate-600 mt-0.5">
+                  {(data.token_partial_sessions ?? 0) > 0
+                    ? `${data.token_partial_sessions} ${t('misc.token_not_split')}`
+                    : `↓ ${fmt(data.tokens_in)} · ↑ ${fmt(data.tokens_out)}`}
+                </div>
               </div>
               <div className="rounded-md bg-slate-950/50 border border-slate-800/70 px-3 py-2">
                 <div className="text-[9px] uppercase tracking-wider text-slate-500">{t('stat.cost_est')}</div>
                 <div className="text-2xl font-semibold text-amber-300 tabular-nums">{formatUsd(stats?.knownCost ?? 0)}</div>
                 <div className="text-[10px] text-slate-600 mt-0.5">
-                  {(stats?.unknownCostSessions ?? 0) > 0 ? `${stats?.unknownCostSessions} ${t('misc.sessions_unpriced')}` : t('misc.estimated')}
+                  {(data.token_partial_sessions ?? 0) > 0
+                    ? t('misc.cost_excludes_unsplit')
+                    : (stats?.unknownCostSessions ?? 0) > 0
+                      ? `${stats?.unknownCostSessions} ${t('misc.sessions_unpriced')}`
+                      : t('misc.estimated')}
                 </div>
               </div>
               <div className="rounded-md bg-slate-950/50 border border-slate-800/70 px-3 py-2">

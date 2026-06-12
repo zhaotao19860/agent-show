@@ -135,6 +135,9 @@ pub async fn today_active(State(s): State<AppState>) -> impl IntoResponse {
     let mut by_agent: HashMap<String, u64> = HashMap::new();
     let mut items = Vec::new();
 
+    let mut token_estimated_sessions: u64 = 0;
+    let mut token_partial_sessions: u64 = 0;
+
     for (meta, detail) in pairs {
         if meta.status == SessionStatus::Active {
             active_sessions += 1;
@@ -144,11 +147,38 @@ pub async fn today_active(State(s): State<AppState>) -> impl IntoResponse {
             .and_then(|v| v.as_str().map(|x| x.to_string()))
             .unwrap_or_else(|| format!("{:?}", meta.agent).to_lowercase());
         *by_agent.entry(agent_key.clone()).or_default() += 1;
-        let tools: u64 = detail.tools_used.values().map(|&v| v as u64).sum();
-        total_turns += detail.turns as u64;
-        total_tokens_in += detail.tokens_in;
-        total_tokens_out += detail.tokens_out;
-        total_tools += tools;
+
+        let today_turns = detail
+            .prompts
+            .iter()
+            .filter(|prompt| {
+                prompt
+                    .timestamp
+                    .map(|ts| ts.with_timezone(&chrono::Local).date_naive() >= today_start)
+                    .unwrap_or(false)
+            })
+            .count() as u64;
+        let today_tools = detail
+            .tool_calls
+            .iter()
+            .filter(|tool| tool.timestamp.with_timezone(&chrono::Local).date_naive() >= today_start)
+            .count() as u64;
+
+        let started_today = meta.started_at.with_timezone(&chrono::Local).date_naive() >= today_start;
+        let (today_tokens_in, today_tokens_out, token_scope) = if started_today {
+            (detail.tokens_in, detail.tokens_out, "today")
+        } else if today_turns > 0 || today_tools > 0 {
+            token_partial_sessions += 1;
+            (0, 0, "unavailable")
+        } else {
+            token_estimated_sessions += 1;
+            (detail.tokens_in, detail.tokens_out, "session")
+        };
+
+        total_turns += today_turns;
+        total_tokens_in += today_tokens_in;
+        total_tokens_out += today_tokens_out;
+        total_tools += today_tools;
         items.push(serde_json::json!({
             "id": meta.id,
             "agent": agent_key,
@@ -159,10 +189,11 @@ pub async fn today_active(State(s): State<AppState>) -> impl IntoResponse {
             "status": meta.status,
             "started_at": meta.started_at,
             "last_event_at": meta.last_event_at,
-            "turns": detail.turns,
-            "tokens_in": detail.tokens_in,
-            "tokens_out": detail.tokens_out,
-            "tools": tools,
+            "turns": today_turns,
+            "tokens_in": today_tokens_in,
+            "tokens_out": today_tokens_out,
+            "token_scope": token_scope,
+            "tools": today_tools,
         }));
     }
 
@@ -174,6 +205,9 @@ pub async fn today_active(State(s): State<AppState>) -> impl IntoResponse {
         "tokens_in": total_tokens_in,
         "tokens_out": total_tokens_out,
         "tools": total_tools,
+        "token_scope": "today_started_sessions",
+        "token_partial_sessions": token_partial_sessions,
+        "token_estimated_sessions": token_estimated_sessions,
         "by_agent": by_agent,
         "items": items,
     }))

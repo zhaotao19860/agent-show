@@ -526,6 +526,8 @@ const dict: Record<string, { en: string; zh: string }> = {
   'misc.session_based': { en: 'session-level', zh: '会话级统计' },
   'misc.estimated': { en: 'estimated', zh: '已估算' },
   'misc.recent_active_sessions': { en: 'Recent active sessions today', zh: '今日最近活跃会话' },
+  'misc.token_not_split': { en: 'cross-day sessions not split', zh: '个跨天会话未拆分' },
+  'misc.cost_excludes_unsplit': { en: 'excludes unsplit cross-day sessions', zh: '不含未拆分跨天会话' },
   'misc.longest_session_label': { en: 'longest session', zh: '最长会话' },
   'misc.minutes_short': { en: 'min', zh: '分' },
 

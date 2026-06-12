@@ -25,6 +25,7 @@ export interface TodayActiveItem {
   tokens_in: number;
   tokens_out: number;
   tools: number;
+  token_scope?: string;
 }
 
 export interface TodayActiveResponse {
@@ -35,6 +36,9 @@ export interface TodayActiveResponse {
   tokens_in: number;
   tokens_out: number;
   tools: number;
+  token_scope?: string;
+  token_partial_sessions?: number;
+  token_estimated_sessions?: number;
   by_agent: Record<string, number>;
   items: TodayActiveItem[];
 }
